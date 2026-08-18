@@ -17,14 +17,14 @@
   <p align="center">
     A static frontend for checking repository compliance for the ECCG policy utilizing CBOMkit, REGO policies, and Semgrep rules.
     <br />
-    <a href="https://github.com/excid-io/cracy-cryptography-tool"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/CRA-tools/crypto-assessment"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/excid-io/cracy-cryptography-tool">View Project</a>
+    <a href="https://github.com/CRA-tools/crypto-assessment">View Project</a>
     &middot;
-    <a href="https://github.com/excid-io/cracy-cryptography-tool/issues/new?labels=bug">Report Bug</a>
+    <a href="https://github.com/CRA-tools/crypto-assessment/issues/new?labels=bug">Report Bug</a>
     &middot;
-    <a href="https://github.com/excid-io/cracy-cryptography-tool/issues/new?labels=enhancement">Request Feature</a>
+    <a href="https://github.com/CRA-tools/crypto-assessment/issues/new?labels=enhancement">Request Feature</a>
   </p>
 </div>
 
@@ -300,7 +300,7 @@ For local development, the OPA proxy is used to add CORS headers before forwardi
    Example:
 
    ```text
-   https://github.com/excid-io/cracy-cryptography-tool.git
+   https://github.com/CRA-tools/crypto-assessment.git
    ```
 
 3. Optionally enter:
@@ -356,7 +356,7 @@ The detailed findings section groups results by policy area and shows severity c
 
 ## Roadmap
 
-See the [open issues](https://github.com/excid-io/cracy-cryptography-tool/issues) for proposed features and known issues.
+See the [open issues](https://github.com/CRA-tools/crypto-assessment/issues) for proposed features and known issues.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -516,7 +516,7 @@ third-party notices.
 
 The CRACY project: [info@cra-cy.eu](mailto:info@cra-cy.eu)
 
-Project Link: https://github.com/excid-io/cracy-cryptography-tool
+Project Link: https://github.com/CRA-tools/crypto-assessment
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -533,15 +533,15 @@ Project Link: https://github.com/excid-io/cracy-cryptography-tool
 
 <!-- MARKDOWN LINKS & IMAGES -->
 
-[contributors-shield]: https://img.shields.io/github/contributors/excid-io/cracy-cryptography-tool.svg?style=for-the-badge
-[contributors-url]: https://github.com/excid-io/cracy-cryptography-tool/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/excid-io/cracy-cryptography-tool.svg?style=for-the-badge
-[forks-url]: https://github.com/excid-io/cracy-cryptography-tool/network/members
-[stars-shield]: https://img.shields.io/github/stars/excid-io/cracy-cryptography-tool.svg?style=for-the-badge
-[stars-url]: https://github.com/excid-io/cracy-cryptography-tool/stargazers
-[issues-shield]: https://img.shields.io/github/issues/excid-io/cracy-cryptography-tool.svg?style=for-the-badge
-[issues-url]: https://github.com/excid-io/cracy-cryptography-tool/issues
-[license-shield]: https://img.shields.io/github/license/excid-io/cracy-cryptography-tool.svg?style=for-the-badge
-[license-url]: https://github.com/excid-io/cracy-cryptography-tool/blob/main/LICENSE
+[contributors-shield]: https://img.shields.io/github/contributors/CRA-tools/crypto-assessment.svg?style=for-the-badge
+[contributors-url]: https://github.com/CRA-tools/crypto-assessment/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/CRA-tools/crypto-assessment.svg?style=for-the-badge
+[forks-url]: https://github.com/CRA-tools/crypto-assessment/network/members
+[stars-shield]: https://img.shields.io/github/stars/CRA-tools/crypto-assessment.svg?style=for-the-badge
+[stars-url]: https://github.com/CRA-tools/crypto-assessment/stargazers
+[issues-shield]: https://img.shields.io/github/issues/CRA-tools/crypto-assessment.svg?style=for-the-badge
+[issues-url]: https://github.com/CRA-tools/crypto-assessment/issues
+[license-shield]: https://img.shields.io/github/license/CRA-tools/crypto-assessment.svg?style=for-the-badge
+[license-url]: https://github.com/CRA-tools/crypto-assessment/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/company/cracy/
