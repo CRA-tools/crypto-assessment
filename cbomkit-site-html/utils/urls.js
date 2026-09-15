@@ -56,19 +56,30 @@ export function normalizeGitUrlForSemgrep(value) {
 /**
  * Builds the request body sent to the CBOMkit scan endpoint.
  *
- * The scan URL is normalized for CBOMkit first. Optional fields are only added
- * when the user provided them, so empty strings are not sent to the backend.
- * A PAT is included under `credentials.pat` when scanning private repositories
- * or when the user wants to avoid rate limits.
+ * The scan URL is normalized for CBOMkit first. Optional branch, subfolder, and
+ * PAT values are only added when provided, so blank fields are not sent to the
+ * backend.
+ *
+ * @param {object} form Repository scan fields.
+ * @param {string} form.url Git or package URL to scan.
+ * @param {string} [form.branch] Optional Git branch.
+ * @param {string} [form.scanPath] Optional repository subfolder.
+ * @param {string} [form.pat] Optional personal access token.
+ * @returns {{scanUrl: string, branch?: string, subfolder?: string,
+ *   credentials?: {pat: string}}} A CBOMkit-compatible scan request.
  */
-export function buildCbomScanRequest({ url, scanPath, pat }) {
+export function buildCbomScanRequest({ url, branch, scanPath, pat }) {
   const request = { scanUrl: normalizeScanUrl(url) };
 
-  if (scanPath.trim()) {
+  if (branch?.trim()) {
+    request.branch = branch.trim();
+  }
+
+  if (scanPath?.trim()) {
     request.subfolder = scanPath.trim();
   }
 
-  if (pat.trim()) {
+  if (pat?.trim()) {
     request.credentials = {
       pat: pat.trim(),
     };

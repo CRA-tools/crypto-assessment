@@ -5,17 +5,29 @@
  * Modified for CRA Compliance Checker.
  */
 
+const runtimeConfig = globalThis.window?.CRA_COMPLIANCE_CONFIG ?? {};
+
 export const HTTP_API_BASE =
-  window.CRA_COMPLIANCE_CONFIG?.CBOMKIT_HTTP_API_BASE || "http://localhost:8081";
+  runtimeConfig.CBOMKIT_HTTP_API_BASE || "http://localhost:8081";
+
+export const WS_API_BASE =
+  runtimeConfig.CBOMKIT_WS_API_BASE ||
+  HTTP_API_BASE.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
 
 export const SEMGREP_API_BASE =
-  window.CRA_COMPLIANCE_CONFIG?.SEMGREP_API_BASE || "http://localhost:9091";
+  runtimeConfig.SEMGREP_API_BASE || "http://localhost:9091";
 
 export const POLICY_API_BASE =
-  window.CRA_COMPLIANCE_CONFIG?.POLICY_API_BASE || "http://localhost:8182";
+  runtimeConfig.POLICY_API_BASE || "http://localhost:8182";
 
 export const OPA_DECISION_PATH =
-  window.CRA_COMPLIANCE_CONFIG?.OPA_DECISION_PATH || "/v1/data/cbom/eccg";
+  runtimeConfig.OPA_DECISION_PATH || "/v1/data/cbom/eccg";
+
+export function getCbomScanEndpoint(clientId) {
+  return `${WS_API_BASE.replace(/\/$/, "")}/v1/scan/${encodeURIComponent(
+    clientId
+  )}`;
+}
 
 export function getOpaEndpoint() {
   const base = POLICY_API_BASE.replace(/\/$/, "");
