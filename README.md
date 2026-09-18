@@ -130,21 +130,20 @@ You need:
 
 * Docker and Docker Compose.
 * Python 3, or any other static file server.
-* Running CBOMkit backend.
-* Running OPA policy service and OPA proxy.
-* Running Semgrep local service.
 
-### Start the backend services
+### Start the Docker services
 
-From the root of the main project repository, start the services needed by the frontend.
-
-For CBOMkit backend and database:
+From the root of the main project repository, start all Docker services:
 
 ```bash
-docker compose --profile dev-frontend up -d backend db
+docker compose up
 ```
 
-The static frontend is served from:
+No profiles are required. This starts the CBOMkit backend and database, the
+CBOMkit frontend at `http://localhost:8001`, OPA and its proxy, and the local
+Semgrep service. Use `docker compose up -d` to run them in the background.
+
+Serve the CRA static frontend separately as described below. It is served from:
 
 ```text
 http://localhost:8000
@@ -174,10 +173,10 @@ backend:
 
 Do not use `http://opa:8181` unless your OPA service is actually named `opa`.
 
-For OPA policy evaluation, start both OPA and the local OPA proxy:
+To start only OPA and the local OPA proxy:
 
 ```bash
-docker compose --profile policy up -d opa-local opa-proxy
+docker compose up -d opa-local opa-proxy
 ```
 
 The frontend calls the proxy by default:
@@ -198,16 +197,16 @@ This avoids browser CORS issues when the static frontend is served from:
 http://localhost:8000
 ```
 
-For Semgrep evaluation:
+To rebuild and start only the Semgrep service:
 
 ```bash
-docker compose --profile semgrep up -d --build semgrep-local
+docker compose up -d --build semgrep-local
 ```
 
-Depending on your Compose profiles, you can also start the full local development stack with:
+To rebuild and start all Docker services in the background:
 
 ```bash
-docker compose --profile dev-frontend --profile policy --profile semgrep up -d --build
+docker compose up -d --build
 ```
 
 ### Serve the static frontend
@@ -242,6 +241,10 @@ export const HTTP_API_BASE =
   window.CRA_COMPLIANCE_CONFIG?.CBOMKIT_HTTP_API_BASE ||
   "http://localhost:8081";
 
+export const WS_API_BASE =
+  window.CRA_COMPLIANCE_CONFIG?.CBOMKIT_WS_API_BASE ||
+  HTTP_API_BASE.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
+
 export const SEMGREP_API_BASE =
   window.CRA_COMPLIANCE_CONFIG?.SEMGREP_API_BASE ||
   "http://localhost:9091";
@@ -261,6 +264,7 @@ The expected local services are:
 | ------------------------- | ----------------------- |
 | Static frontend           | `http://localhost:8000` |
 | CBOMkit backend           | `http://localhost:8081` |
+| CBOMkit scan stream       | `ws://localhost:8081`   |
 | OPA proxy                 | `http://localhost:8182` |
 | OPA service inside Docker | `http://opa-local:8181` |
 | Semgrep local service     | `http://localhost:9091` |
@@ -272,6 +276,7 @@ Important Docker Compose settings:
 | `CBOMKIT_FRONTEND_URL_CORS` | Allows the static frontend to call the CBOMkit backend from the browser | `http://localhost:8000` |
 | `CBOMKIT_OPA_API_BASE`      | Allows the CBOMkit backend to call OPA inside Docker                    | `http://opa-local:8181` |
 | `HTTP_API_BASE`             | Frontend URL for CBOMkit backend                                        | `http://localhost:8081` |
+| `WS_API_BASE`               | Frontend WebSocket URL for live CBOMkit scans                           | `ws://localhost:8081`   |
 | `POLICY_API_BASE`           | Frontend URL for OPA proxy                                              | `http://localhost:8182` |
 | `SEMGREP_API_BASE`          | Frontend URL for Semgrep service                                        | `http://localhost:9091` |
 
@@ -384,12 +389,12 @@ Then open:
 http://localhost:8000
 ```
 
-### CBOMkit request is blocked by CORS
+### CBOMkit scan connection is blocked
 
 If the browser blocks:
 
 ```text
-http://localhost:8081/api/v1/scan
+ws://localhost:8081/v1/scan/<client-id>
 ```
 
 make sure the CBOMkit backend allows the static frontend origin:
@@ -401,8 +406,13 @@ CBOMKIT_FRONTEND_URL_CORS: "http://localhost:8000"
 Then recreate the backend container:
 
 ```bash
-docker compose --profile dev-frontend up -d --force-recreate backend
+docker compose up -d --force-recreate backend
 ```
+
+When the frontend is served over HTTPS, configure
+`CBOMKIT_WS_API_BASE` with a `wss://` URL. If it is omitted, the frontend
+derives the WebSocket URL from `CBOMKIT_HTTP_API_BASE` (`http` becomes `ws`,
+and `https` becomes `wss`).
 
 ### OPA request is refused
 
@@ -425,7 +435,7 @@ export const POLICY_API_BASE =
 Then start both OPA and the proxy:
 
 ```bash
-docker compose --profile policy up -d opa-local opa-proxy
+docker compose up -d opa-local opa-proxy
 ```
 
 ### OPA request is blocked by CORS
@@ -443,7 +453,7 @@ export const POLICY_API_BASE =
 Then start both OPA and the proxy:
 
 ```bash
-docker compose --profile policy up -d opa-local opa-proxy
+docker compose up -d opa-local opa-proxy
 ```
 
 The proxy should forward to:
@@ -463,7 +473,7 @@ POST http://localhost:9091/scan net::ERR_CONNECTION_REFUSED
 start the Semgrep service:
 
 ```bash
-docker compose --profile semgrep up -d --build semgrep-local
+docker compose up -d --build semgrep-local
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
