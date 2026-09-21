@@ -5,19 +5,11 @@
  * Static frontend independently implemented for CRA Compliance Checker.
  */
 
-import {
-  HTTP_API_BASE,
-  getOpaEndpoint,
-  getSemgrepEndpoint,
-} from "./config/endpoints.js";
+import { getOpaEndpoint, getSemgrepEndpoint } from "./config/endpoints.js";
 
-import {
-  buildCbomScanRequest,
-  buildSemgrepScanRequest,
-  recordMatchesScanUrl,
-} from "./utils/urls.js";
+import { buildSemgrepScanRequest } from "./utils/urls.js";
 
-import { sleep } from "./utils/sleep.js";
+import { generateCbom } from "./api/cbomApi.js";
 
 import {
   extractImportantFindings,
@@ -122,85 +114,6 @@ function makeErrorMessage(error) {
   if (error instanceof Error) return error.message;
 
   return String(error);
-}
-
-async function submitCbomScan({ form, signal }) {
-  const scanRequest = buildCbomScanRequest(form);
-
-  const response = await fetch(`${HTTP_API_BASE}/api/v1/scan`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(scanRequest),
-    signal,
-  });
-
-  if (response.status !== 202 && !response.ok) {
-    const body = await response.text().catch(() => "");
-
-    throw new Error(
-      body || `CBOM scan request failed with HTTP ${response.status}.`
-    );
-  }
-
-  return scanRequest;
-}
-
-async function pollForCbom({ scanUrl, scanStartedAt, signal }) {
-  const maxAttempts = 90;
-  const delayMs = 2000;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    if (signal?.aborted) {
-      throw new DOMException("The operation was aborted.", "AbortError");
-    }
-
-    const response = await fetch(`${HTTP_API_BASE}/api/v1/cbom/last/50`, {
-      signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Could not retrieve CBOMs: HTTP ${response.status}.`);
-    }
-
-    const records = await response.json();
-
-    const matches = records
-      .filter((record) => {
-        const createdAt = Number(record.createdAt || 0);
-
-        return (
-          recordMatchesScanUrl(record, scanUrl) && createdAt >= scanStartedAt
-        );
-      })
-      .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
-
-    if (matches[0]?.bom) {
-      return matches[0].bom;
-    }
-
-    setStatus(`Waiting for new CBOM... ${attempt}/${maxAttempts}`);
-
-    await sleep(delayMs, signal);
-  }
-
-  throw new Error("Timed out waiting for a newly generated CBOM.");
-}
-
-async function generateCbom({ form, signal }) {
-  setStatus("Submitting CBOM scan...");
-
-  const scanStartedAt = Date.now();
-  const scanRequest = await submitCbomScan({ form, signal });
-
-  setStatus("Scan accepted. Waiting for CBOM...");
-
-  return pollForCbom({
-    scanUrl: scanRequest.scanUrl,
-    scanStartedAt,
-    signal,
-  });
 }
 
 function formatOpaErrors(body, responseText) {
@@ -694,8 +607,9 @@ async function handleComplianceCheck(event) {
 
   try {
     const cbom = await generateCbom({
-      form,
+      ...form,
       signal: abortController.signal,
+      onStatus: setStatus,
     });
 
     latestCbom = cbom;

@@ -172,7 +172,16 @@ class SemgrepRequestHandler(BaseHTTPRequestHandler):
                     for root, _dirs, files in os.walk(scan_target):
                         for filename in files:
                             if filename.endswith(".py"):
-                                python_targets.append(os.path.join(root, filename))
+                                target_file = os.path.join(root, filename)
+
+                                if os.path.islink(target_file):
+                                    logger.info(
+                                        "Skipping symbolic-link Semgrep target: %s",
+                                        target_file,
+                                    )
+                                    continue
+
+                                python_targets.append(target_file)
                 
                 python_targets.sort()
                 
