@@ -12,10 +12,10 @@
 <br />
 <div align="center">
 
-<h3 align="center">CRA Compliance Checker</h3>
+<h3 align="center">CRACY Cryptographic Assessment Tool</h3>
 
   <p align="center">
-    A static frontend for checking repository compliance for the ECCG policy utilizing CBOMkit, REGO policies, and Semgrep rules.
+    A tool for ensuring that your software uses state-of-the-art cryptography. The tool leverages Cryptography Bill of Materials (CBOM).
     <br />
     <a href="https://github.com/CRA-tools/crypto-assessment"><strong>Explore the docs »</strong></a>
     <br />
