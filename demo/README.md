@@ -1,3 +1,18 @@
+# Demo code for test assessments
+
+**Use the sample code in [`demo/code`](code) to run a test assessment or get
+familiar with the CRACY Cryptographic Assessment Tool.** The examples let you
+try the scanning workflow, inspect the generated CBOM, and explore policy and
+source-code findings before assessing your own project.
+
+To try it, enter `https://github.com/CRA-tools/crypto-assessment.git` as the
+repository URL in the frontend, set **Scan path** to `demo/code`, and press
+**Check compliance**. Review the result, then select **Show findings** to
+explore the details. See the [main usage guide](../README.md#usage) for the
+full workflow.
+
+The sections below explain example findings and their severities to help you
+understand the assessment results.
 
 # Severities 
 
