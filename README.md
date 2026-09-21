@@ -151,6 +151,11 @@ Edit `.env` to set `CBOMKIT_VERSION`, `POSTGRESQL_AUTH_USERNAME`, and
 services. For local access, keep
 `CBOMKIT_FRONTEND_URL_CORS=http://localhost:8000`.
 
+If you already have a database volume, use its existing credentials. Editing
+`.env` does not change stored database users or passwords; see
+[Database password authentication fails](#database-password-authentication-fails)
+if the credentials no longer match.
+
 For access from another machine, follow
 [Accessing the services on a different IP and port](#accessing-the-services-on-a-different-ip-and-port)
 to set the allowed frontend origin before starting the services.
@@ -473,6 +478,60 @@ See the [open issues](https://github.com/CRA-tools/crypto-assessment/issues) for
 <!-- TROUBLESHOOTING -->
 
 ## Troubleshooting
+
+### Database password authentication fails
+
+If the backend reports `FATAL: password authentication failed for user "cbomkit"`,
+it reached PostgreSQL, but the database rejected its credentials. Compose passes
+the same `.env` credentials to both services. However, the
+[PostgreSQL image](https://github.com/docker-library/docs/blob/master/postgres/content.md#environment-variables)
+only creates the user and sets its password when `pg-volume` is first initialized.
+Recreating containers with different `.env` values leaves the stored credentials
+unchanged.
+
+Run these steps on the machine and in the Compose project that produced the logs:
+
+1. Set `POSTGRESQL_AUTH_USERNAME` and `POSTGRESQL_AUTH_PASSWORD` in `.env` to the
+   credentials originally used for this database. Check for exported variables
+   with these names in your shell, since they override `.env` values. If the
+   backend logs a different username from the one you configured, it may still
+   be running with old container settings.
+
+2. If you need to reset the password, keep `POSTGRESQL_AUTH_USERNAME` set to an
+   existing database role and start the database:
+
+   ```bash
+   docker compose up -d db
+   docker compose exec db psql -U cbomkit -d postgres
+   ```
+
+   Replace `cbomkit` with the original database username if necessary (for
+   example, `postgres`). This uses a local Unix socket, which the standard image
+   allows without a password. At the `psql` prompt, run:
+
+   ```text
+   \password cbomkit
+   \q
+   ```
+
+   Again, use the existing role name. Enter the password you want to use at the
+   prompts, and set the same value in `.env`. Use single quotes around a password
+   containing `$` so Compose reads it literally. Changing the username in `.env`
+   does not create that role in an existing database.
+
+3. Apply the matching credentials to both containers and check startup:
+
+   ```bash
+   docker compose up -d --force-recreate db backend
+   docker compose ps -a
+   docker compose logs --tail=100 db backend
+   ```
+
+The database health check runs an authenticated query over the same TCP hostname
+as the backend. Incorrect credentials make `db` unhealthy and prevent backend
+startup. `pg_isready` alone can report readiness even when credentials are wrong.
+These recovery steps preserve the database; `docker compose down -v` deletes
+the project's named volumes and their data.
 
 ### Browser blocks `app.js`
 
