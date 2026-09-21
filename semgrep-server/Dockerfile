@@ -1,10 +1,6 @@
-FROM python:3.12-slim
-
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir semgrep
+# Use the packaged scanner, Python, and Git instead of resolving and compiling
+# Semgrep dependencies on each machine during the application build.
+FROM semgrep/semgrep:1.177.0
 
 WORKDIR /app
 
@@ -16,4 +12,5 @@ COPY semgrep_types.py /app/semgrep_types.py
 
 EXPOSE 9091
 
-CMD ["python", "/app/semgrep_server.py"]
+ENTRYPOINT []
+CMD ["python3", "/app/semgrep_server.py"]

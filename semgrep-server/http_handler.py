@@ -150,7 +150,7 @@ class SemgrepRequestHandler(BaseHTTPRequestHandler):
                 scan_target = safe_subfolder_path(repo_dir, subfolder)
 
                 logger.info(
-                    "Resolved Semgrep scan target: target=s exists=%s fileCount=%s",
+                    "Resolved Semgrep scan target: target=%s exists=%s fileCount=%s",
                     scan_target,
                     os.path.exists(scan_target),
                     sum(len(files) for _, _, files in os.walk(scan_target)),

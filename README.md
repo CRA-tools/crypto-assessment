@@ -53,7 +53,8 @@
 
 This project implements a lightweight static web frontend for checking cryptographic compliance of a Git repository.
 
-The project can be served with any static HTTP server, such as Python’s built-in `http.server`.
+Docker Compose serves the static frontend through Nginx at
+`http://localhost:8000` and starts the backend services.
 
 The tool coordinates three checks:
 
@@ -98,14 +99,13 @@ cbomkit-site-html/
 │   ├── eu-cofunded-logo.png
 │   └── excid-logo.svg
 ├── index.html
-├── README.md
 ├── styles.css
 └── utils
     ├── regoFindings.js
     ├── semgrepFindings.js
     ├── sleep.js
     └── urls.js
-````
+```
 
 Important files:
 
@@ -128,50 +128,40 @@ Important files:
 
 You need:
 
-* Docker and Docker Compose.
-* Python 3, or any other static file server.
+* Docker with Docker Compose.
+* Internet access to download container images and clone repositories for scanning.
 
 ### Start the Docker services
 
 From the root of the main project repository, start all Docker services:
 
 ```bash
-docker compose up
+docker compose up -d --build
 ```
 
-No profiles are required. This starts the CBOMkit backend and database, the
-CBOMkit frontend at `http://localhost:8001`, OPA and its proxy, and the local
-Semgrep service. Use `docker compose up -d` to run them in the background.
+This starts the **CRA Compliance Checker** frontend
+at `http://localhost:8000`, the CBOMkit backend and database, OPA and its proxy,
+and the local Semgrep service. 
 
-Serve the CRA static frontend separately as described below. It is served from:
+The upstream CBOMkit frontend previously served
+on port 8001 is currently commented out.
 
-```text
-http://localhost:8000
+Wait for the backend to finish starting before checking compliance. Inspect
+service status and startup logs with:
+
+```bash
+docker compose ps -a
+docker compose logs --tail=100 backend semgrep-local opa-local opa-proxy
 ```
 
-Because the CBOMkit backend runs on a different origin:
+Compose reads `.env` automatically. The backend at `http://localhost:8081` and
+the OPA proxy both allow the origin set by `CBOMKIT_FRONTEND_URL_CORS`, which
+defaults to `http://localhost:8000`. The backend already uses the Docker service
+address `http://opa-local:8181` for OPA.
 
-```text
-http://localhost:8081
-```
-
-the backend must allow CORS from the static frontend. Make sure the backend service contains:
-
-```yml
-backend:
-  environment:
-    CBOMKIT_FRONTEND_URL_CORS: "http://localhost:8000"
-```
-
-Also make sure the backend points to the correct OPA service name. If your Compose service is named `opa-local`, use:
-
-```yml
-backend:
-  environment:
-    CBOMKIT_OPA_API_BASE: "http://opa-local:8181"
-```
-
-Do not use `http://opa:8181` unless your OPA service is actually named `opa`.
+The Semgrep service uses the pinned `semgrep/semgrep:1.177.0` image, which includes
+the scanner, Python, and Git. Its application build only copies the HTTP server
+files; it does not run `apt-get` or install packages from PyPI.
 
 To start only OPA and the local OPA proxy:
 
@@ -203,26 +193,16 @@ To rebuild and start only the Semgrep service:
 docker compose up -d --build semgrep-local
 ```
 
-To rebuild and start all Docker services in the background:
+### Open the frontend
 
-```bash
-docker compose up -d --build
-```
-
-### Serve the static frontend
-
-From this directory:
-
-```bash
-cd cbomkit-site-html
-python3 -m http.server 8000
-```
-
-Then open:
+Once the Docker services are running, open:
 
 ```text
 http://localhost:8000
 ```
+
+Nginx serves `cbomkit-site-html` from a read-only bind mount. Changes to the
+frontend files are available on browser refresh without rebuilding the container.
 
 Do not open `index.html` directly with `file://`, because browser JavaScript modules require an HTTP origin.
 
@@ -262,18 +242,18 @@ The expected local services are:
 
 | Service                   | Default URL             |
 | ------------------------- | ----------------------- |
-| Static frontend           | `http://localhost:8000` |
+| CRA Compliance Checker frontend | `http://localhost:8000` |
 | CBOMkit backend           | `http://localhost:8081` |
 | CBOMkit scan stream       | `ws://localhost:8081`   |
 | OPA proxy                 | `http://localhost:8182` |
 | OPA service inside Docker | `http://opa-local:8181` |
 | Semgrep local service     | `http://localhost:9091` |
 
-Important Docker Compose settings:
+Important settings:
 
 | Setting                     | Purpose                                                                 | Local value             |
 | --------------------------- | ----------------------------------------------------------------------- | ----------------------- |
-| `CBOMKIT_FRONTEND_URL_CORS` | Allows the static frontend to call the CBOMkit backend from the browser | `http://localhost:8000` |
+| `CBOMKIT_FRONTEND_URL_CORS` | `.env` setting used by the CBOMkit backend and OPA proxy to allow the frontend origin | `http://localhost:8000` |
 | `CBOMKIT_OPA_API_BASE`      | Allows the CBOMkit backend to call OPA inside Docker                    | `http://opa-local:8181` |
 | `HTTP_API_BASE`             | Frontend URL for CBOMkit backend                                        | `http://localhost:8081` |
 | `WS_API_BASE`               | Frontend WebSocket URL for live CBOMkit scans                           | `ws://localhost:8081`   |
@@ -287,6 +267,51 @@ http://localhost:8000
 ```
 
 For local development, the OPA proxy is used to add CORS headers before forwarding requests to OPA.
+
+### Changing the frontend port
+
+> [!IMPORTANT]
+> **Changing `.env` alone does not change the frontend port.** Update both the
+> frontend port mapping in `docker-compose.yml` and the allowed browser origin
+> in `.env`, then recreate the affected services.
+
+For example, to serve the frontend at `http://localhost:8001`:
+
+1. In `docker-compose.yml`, change the `frontend` service's port mapping:
+
+   ```yaml
+   ports:
+     - "8001:80"
+   ```
+
+   The left-hand value is the host port; the container still serves on port 80.
+
+2. In `.env`, set the matching browser origin:
+
+   ```env
+   CBOMKIT_FRONTEND_URL_CORS=http://localhost:8001
+   ```
+
+   If you access the frontend through a different hostname or IP address, use
+   that exact browser origin, including its scheme and port.
+
+3. Apply both changes by recreating the frontend, backend, and OPA proxy:
+
+   ```bash
+   docker compose up -d --force-recreate frontend backend opa-proxy
+   ```
+
+Open `http://localhost:8001` after the services finish starting. If you only
+change the frontend origin without changing its port mapping, update
+`CBOMKIT_FRONTEND_URL_CORS` in `.env` and recreate the backend and OPA proxy:
+
+```bash
+docker compose up -d --force-recreate backend opa-proxy
+```
+
+Browser endpoint overrides use `window.CRA_COMPLIANCE_CONFIG`, set before
+`app.js` loads; Compose environment variables do not rewrite the static
+JavaScript files.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -377,10 +402,10 @@ If you see an error such as:
 Access to script at file:///.../app.js has been blocked by CORS policy
 ```
 
-you opened the file directly. Serve the directory over HTTP instead:
+you opened the file directly. Start the Compose frontend from the repository root:
 
 ```bash
-python3 -m http.server 8000
+docker compose up -d frontend
 ```
 
 Then open:
@@ -397,16 +422,16 @@ If the browser blocks:
 ws://localhost:8081/v1/scan/<client-id>
 ```
 
-make sure the CBOMkit backend allows the static frontend origin:
+make sure `.env` allows the frontend origin:
 
-```yml
-CBOMKIT_FRONTEND_URL_CORS: "http://localhost:8000"
+```dotenv
+CBOMKIT_FRONTEND_URL_CORS=http://localhost:8000
 ```
 
-Then recreate the backend container:
+Then recreate the backend and OPA proxy containers:
 
 ```bash
-docker compose up -d --force-recreate backend
+docker compose up -d --force-recreate backend opa-proxy
 ```
 
 When the frontend is served over HTTPS, configure
@@ -475,6 +500,16 @@ start the Semgrep service:
 ```bash
 docker compose up -d --build semgrep-local
 ```
+
+Check that `http://localhost:9091/health` returns `"ok": true`. If the image build
+fails, capture the full build output:
+
+```bash
+docker compose --progress plain build --pull semgrep-local
+```
+
+The build should start from `semgrep/semgrep:1.177.0` and copy the server files.
+If it still runs `pip install semgrep`, your checkout has the older Dockerfile.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
