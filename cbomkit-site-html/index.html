@@ -9,7 +9,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CRA Compliance Checker</title>
+    <title>CRACY Cryptographic Assessment Tool</title>
     <link rel="stylesheet" href="./styles.css" />
     <script type="module" src="./app.js?v=3"></script>
   </head>
@@ -17,7 +17,7 @@
   <body>
     <header class="topbar">
       <div class="topbar__inner">
-        <h1>CRA Compliance Checker</h1>
+        <h1>CRACY Cryptographic Assessment Tool</h1>
 
         <label class="theme-toggle" title="Toggle dark mode">
           <input id="darkModeToggle" type="checkbox" />
@@ -30,7 +30,7 @@
       <section class="intro-card">
         <h2>Check repository compliance</h2>
         <p>
-          Enter a Git repository URL and run the CBOM, REGO, and Semgrep checks.
+          Enter a Git repository URL.
         </p>
       </section>
 
@@ -39,7 +39,7 @@
 
         <form id="complianceForm" class="form">
           <label class="field">
-            <span>Git URL</span>
+            <span>Git repository URL (e.g., https://github.com/CRA-tools/crypto-assessment)</span>
             <input
               id="repoUrl"
               name="repoUrl"
@@ -52,7 +52,7 @@
 
           <div class="field-grid">
             <label class="field">
-              <span>Scan path</span>
+              <span>Scan path - Optional (e.g., demo/code )</span>
               <input
                 id="scanPath"
                 name="scanPath"
@@ -62,7 +62,7 @@
             </label>
 
             <label class="field">
-              <span>Branch</span>
+              <span>Branch - Optional</span>
               <input
                 id="branch"
                 name="branch"
@@ -74,7 +74,7 @@
 
           <div class="field-grid">
             <label class="field">
-              <span>Commit</span>
+              <span>Commit - Optional</span>
               <input
                 id="commit"
                 name="commit"
@@ -84,7 +84,7 @@
             </label>
 
             <label class="field">
-              <span>PAT</span>
+              <span>PAT - Optional</span>
               <input
                 id="pat"
                 name="pat"
@@ -97,7 +97,7 @@
 
           <div class="action-row">
             <button id="checkButton" class="primary-button" type="submit">
-              Check compliance
+              Assess
             </button>
           </div>
         </form>
@@ -107,7 +107,7 @@
       </section>
 
       <section id="results" class="results" hidden>
-        <h2>Compliance result</h2>
+        <h2>Assessment result</h2>
 
         <div id="complianceBanner"></div>
         <div id="summary" class="summary"></div>
@@ -166,7 +166,7 @@
 
         <p>
           © 2026 CRACY — This project has received funding from the European
-          Union’s Digital Europe Programme under grant agreement No 101190492.
+          Union's Digital Europe Programme under grant agreement No 101190492.
         </p>
       </div>
     </footer>

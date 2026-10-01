@@ -20,7 +20,7 @@
     <a href="https://github.com/CRA-tools/crypto-assessment"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/CRA-tools/crypto-assessment">View Project</a>
+    <a href="https://crypto-tool.excid.io">View Demo</a>
     &middot;
     <a href="https://github.com/CRA-tools/crypto-assessment/issues/new?labels=bug">Report Bug</a>
     &middot;
@@ -51,25 +51,17 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This project implements a lightweight static web frontend for checking cryptographic compliance of a Git repository.
+This tool scans a repository and examines if the use of cryptography complies  with [ECCG Agreed Cryptographic Mechanisms](https://certification.enisa.europa.eu/publications/eucc-guidelines-cryptography_en) .
 
-Docker Compose serves the static frontend through Nginx at
-`http://localhost:8000` and starts the backend services.
 
-The tool coordinates three checks:
 
-1. CBOM generation through CBOMkit.
-2. REGO policy evaluation through OPA on the previously generated CBOM.
-3. Semgrep rule evaluation through the local Semgrep service.
-
-The interface is intentionally simple: the user enters repository details and presses a single **Check compliance** button. The compliance result is shown first, while detailed findings remain hidden until the user chooses to display them.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- WHAT IT CHECKS -->
 ## What It Checks
 
-The CRA Compliance Checker evaluates repository cryptography usage using:
+The tool evaluates repository cryptography usage using:
 
 - **CBOMkit** to generate a CycloneDX CBOM for the selected repository or subfolder.
 - **OPA / REGO** to evaluate CBOM components against ECCG policy rules.
