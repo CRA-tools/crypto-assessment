@@ -356,6 +356,30 @@
           "text": "It is recommended to use the highest possible standardised parameter size, either FrodoKEM-1344 or FrodoKEM-976."
         }
       }
+    },
+    "Random-Number-Generation": {
+      "Deterministic-Random-Bit-Generator": {
+        "71-DRG-Seeding": {
+          "category": "general",
+          "title": "71-DRG-Seeding",
+          "text": "The security of DRG derives from a proper seeding of the internal state of the construction from a random source. The required min-entropy for the (re)seeding operation of the DRG mandated by its specification shall be respected. Furthermore the min-entropy of the seed shall be at least 125."
+        },
+        "72-Quantum-Threat": {
+          "category": "general",
+          "title": "72-Quantum-Threat",
+          "text": "In contexts where resistance against attacks leveraging quantum computers is required, it is recommended that the min-entropy of the seed is at least 188 bits."
+        },
+        "73-BacktrackingResistance": {
+          "category": "general",
+          "title": "73-BacktrackingResistance",
+          "text": "In systems which aim at providing perfect forward secrecy (PFS), an attacker who has recovered the current state of the random number generator which was used in previous key exchanges to produce ephemeral keys will be able to break the PFS property if it is possible to practically compute past DRG outputs from the present state of the DRG. Therefore, only DRG which do not allow such backwards computation should be used."
+        },
+        "74-QuantumThreat": {
+          "category": "specific",
+          "title": "74-QuantumThreat",
+          "text": "There exist algorithms leveraging quantum computers, like the Grover algorithm, that may speed up attacks against block ciphers. In contexts where resistance against attacks leveraging quantum computers is required, it is recommended not to use CTR_DRBG with block ciphers with key size smaller than 192 bits."
+        }
+      }
     }
   }
 }

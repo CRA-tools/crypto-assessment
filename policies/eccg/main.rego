@@ -105,6 +105,11 @@ policy_sources := [
         "subsection": "FF DLOG",
         "findings": data.cbom.eccg.asymmetric_atomic_primitives.ff_dlog.findings
     },
+    {
+        "section": "Random Number Generation",
+        "subsection": "Deterministic Random Bit Generator",
+        "findings": data.cbom.eccg.random_number_generation.deterministic_random_bit_generator.findings
+    },
     #{
     #    "section": "General",
     #    "subsection": "Key Material",
