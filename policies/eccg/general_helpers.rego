@@ -3,8 +3,14 @@ package cbom.eccg.general_helpers
 import data.cbom.eccg.getter_helpers.get_component_source_references_or_empty
 import data.cbom.eccg.getter_helpers.get_component_bom_ref_or_empty
 import data.cbom.eccg.getter_helpers.get_component_name_or_empty
+import data.cbom.eccg.getter_helpers.get_component_parameter_set_identifier_or_empty
 
 import data.cbom.eccg.classifying_helpers.is_valid_severity
+
+# Use the shared getter's normalization and empty-value convention.
+has_parameter_set_identifier(component) if {
+    get_component_parameter_set_identifier_or_empty(component) != ""
+}
 
 build_finding(rule_id, severity_level, message_text, component, extra_fields) := finding_object if {
 
