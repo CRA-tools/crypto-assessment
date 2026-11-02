@@ -46,8 +46,8 @@ findings contains finding if {
     finding := build_finding(
         "ECCG-SEAS-001",
         "critical",
-        "%s is not an agreed Authenticated Encryption scheme.",
-        get_component_name_or_empty(component),
+        sprintf("%s is not an agreed Authenticated Encryption scheme.", [get_component_name_or_empty(component)]),
+        component,
         symmetric_encryption_scheme_metadata(component)
     )
 }
@@ -85,8 +85,8 @@ findings contains finding if {
     finding := build_finding(
         "ECCG-SEAS-002",
         "warning",
-        "%s detected. When using Authenticated Encryption schemes ensure that the challenges are not reused and the challenge bits are %d.",
-        [get_component_name_or_empty(component), SEAS_CHALLENGE_SIZE_REQUIRED_BITS],
+        sprintf("%s detected. When using Authenticated Encryption schemes ensure that the challenges are not reused and the challenge bits are %d.", [get_component_name_or_empty(component), SEAS_CHALLENGE_SIZE_REQUIRED_BITS]),
+        component,
         symmetric_encryption_scheme_metadata(component)
     )
 }

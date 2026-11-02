@@ -1,9 +1,14 @@
 package cbom.eccg.general_helpers_test
 
+# Shared identifier-normalization tests protect spelling compatibility without losing
+# distinctions between different algorithm names.
+
 import data.cbom.eccg.general_helpers.normalize_crypto_identifier
 
+# Separator normalization must preserve distinctions such as DSA versus ECDSA while
+# accepting supported spelling variations.
 test_crypto_identifiers_normalize_without_collapsing_distinct_algorithms if {
-	every original, expected in {
+	every raw_identifier, expected_normalized_identifier in {
 		"DSA": "dsa",
 		"ECDSA": "ecdsa",
 		"MODP-3072": "modp3072",
@@ -13,6 +18,6 @@ test_crypto_identifiers_normalize_without_collapsing_distinct_algorithms if {
 		"RSA-PKCS1-1.5": "rsapkcs115",
 		"": "",
 	} {
-		normalize_crypto_identifier(original) == expected
+		normalize_crypto_identifier(raw_identifier) == expected_normalized_identifier
 	}
 }

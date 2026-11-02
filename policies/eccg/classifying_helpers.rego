@@ -13,6 +13,11 @@ import data.cbom.eccg.relationship_helpers.components_share_evidence_location_wi
 
 allowed_severities := {"warning", "info", "low", "medium", "high", "critical", "error"}
 
+is_drbg_primitive(component) if {
+    get_component_asset_type_or_empty(component) in {"algorithm", "related-crypto-material"}
+    get_component_primitive_or_empty(component) == "drbg"
+}
+
 is_valid_severity(sev) if {
     allowed_severities[sev]
 }

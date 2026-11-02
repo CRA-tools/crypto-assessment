@@ -39,7 +39,7 @@ findings contains finding if {
 
     finding := build_finding(
         "ECCG-PWH-001",
-        "critical",
+        "medium",
         sprintf(
             "Password hashing mechanism '%s' is not based on the agreed schemes. Note that there is no way to differentiate, whether this is a KDF or a password hash from the CBOM alone. The agreed schemes are: %s",
             [get_component_name_or_empty(component), AGREED_PASSWORD_HASHING_SCHEMES]

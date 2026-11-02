@@ -135,7 +135,7 @@ findings contains finding if {
     finding := build_finding(
         "ECCG-ECDLOG-001",
         "warning",
-        "EC-DLOG primitive %d detected, but its elliptic curve could not be determined. Supply algorithmProperties.ellipticCurve to verify ECCG-ECDLOG-001.",
+        "EC-DLOG primitive detected, but its elliptic curve could not be determined. Supply algorithmProperties.ellipticCurve or algorithmProperties.curve to verify ECCG-ECDLOG-001.",
         component,
         {
             "scheme": "EC-DLOG",

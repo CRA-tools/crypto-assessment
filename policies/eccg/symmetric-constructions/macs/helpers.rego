@@ -129,6 +129,7 @@ is_agreed_hmac_scheme(component) if {
     is_legacy_marker_active(HMAC_SHA1_LEGACY_MARKER)
 } else if {
     is_hmac_scheme(component)
+    not is_hmac_sha1_scheme(component)
 }
 
 is_agreed_kmac_scheme(component) if {

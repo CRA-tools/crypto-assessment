@@ -11,6 +11,57 @@ that combined output. Classification-based and heuristic findings can require
 manual review; they do not prove that an implementation satisfies the stated
 operational requirements.
 
+## Policy tests
+
+The tests cover individual policy sections, shared helpers, helper type checks,
+and the combined assessment. Section tests use complete CycloneDX 1.7 CBOMs.
+
+Run the commands below from the repository root, where `docker-compose.yml` is
+located. Docker must be running. The `opa-local` service uses OPA 1.15.1.
+
+Run all tests:
+
+```bash
+docker compose run --rm --no-deps opa-local test /policies
+```
+
+Use `--run` to select a suite:
+
+```bash
+# Block cipher policies
+docker compose run --rm --no-deps opa-local test /policies --run 'section_tests.block_ciphers'
+
+# Combined assessment and section coverage
+docker compose run --rm --no-deps opa-local test /policies --run 'cyclonedx_integration_test'
+
+# Test helper type checks
+docker compose run --rm --no-deps opa-local test /policies --run 'test_type_helpers_test'
+```
+
+`--run` accepts a regular expression matched against test names. Add
+`--fail-on-empty` to fail if the filter matches no tests, or `--verbose` to show
+individual test results and failure traces. A successful run ends with
+`PASS: <passed>/<total>`. Test failures return a nonzero exit status.
+
+With OPA 1.15.1 installed locally, run:
+
+```bash
+opa test policies/eccg
+```
+
+From the `policies` directory, use `opa test eccg`. The same `--run` and
+`--verbose` options apply.
+
+Rules such as `test_cyclonedx_cases[test_case.name]` are parameterized tests.
+`some test_case in cases` selects the fixtures, and `[test_case.name]` gives each
+case a named result. For example, the block cipher suite reports `AES 128 bits`,
+`AES 192 bits`, and `AES 256 bits` separately. The brackets define the result's
+key in the rule head. See [Parameterized tests](tests/README.md#parameterized-tests)
+for the rule syntax and an example report.
+
+See [test documentation](tests/README.md) for the section inventory and commands
+to validate the fixtures against the official CycloneDX schemas.
+
 ## Symmetric Atomic Primitives
 
 ### Block Ciphers
@@ -126,6 +177,9 @@ operational requirements.
     - Message: [scheme] is safe for quantum sensitive contexts, when output size is at least 192 bits.
     - Applies to HMAC and KMAC; this is an advisory finding and does not verify actual key or output lengths.
 
+HMAC-SHA1 is accepted only through 2030. From 2031 it produces the critical
+ECCG-MAC-001 finding, including when identified through a generic HMAC family.
+
 - ECCG-CBC-MAC-001:
     - Severity: warning
     - Message: CBC MAC scheme detected: [scheme]. Ensure the outputs follow a fixed input length.
@@ -146,15 +200,11 @@ operational requirements.
 
 - ECCG-SEAS-001:
     - Severity: critical
-    - Message: `%s is not an agreed Authenticated Encryption scheme.`
+    - Message: [scheme] is not an agreed Authenticated Encryption scheme.
 
 - ECCG-SEAS-002:
     - Severity: warning
-    - Message: `%s detected. When using Authenticated Encryption schemes ensure that the challenges are not reused and the challenge bits are %d.`
-
-The SEAS rules currently pass these message strings directly to `build_finding`,
-so `%s` and `%d` remain literal placeholders. The intended values are the detected
-scheme name and a challenge size of 125 bits.
+    - Message: [scheme] detected. When using Authenticated Encryption schemes ensure that the challenges are not reused and the challenge bits are 125.
 
 ### Agreed Key Protection Schemes
 
@@ -222,12 +272,18 @@ scheme name and a challenge size of 125 bits.
 
 ### Agreed Elliptic Curve Parameters
 
+Explicit curve metadata is read from `algorithmProperties.ellipticCurve`,
+falling back to the older `algorithmProperties.curve` field used by CBOMkit.
+A nonblank string in `ellipticCurve` takes precedence when both fields are
+present. Explicit curve metadata is assessed before parameter-set or
+algorithm-derived curve inference. For example, `curve: "secp256r1"` identifies
+NIST P-256 and receives the SpecialP advisory below.
+
 - ECCG-ECDLOG-001:
     - Severity: critical for a curve outside the allowlist.
     - Message: EC-DLOG primitive detected with elliptic curve [curve], which is not allowed by ECCG-ECDLOG-001. Recommended curves: [recommended curves].
     - Severity: warning when the curve cannot be determined.
-    - Message: `EC-DLOG primitive %d detected, but its elliptic curve could not be determined. Supply algorithmProperties.ellipticCurve to verify ECCG-ECDLOG-001.`
-    - The missing-curve message currently contains a literal `%d`; it is not formatted by the implementation.
+    - Message: EC-DLOG primitive detected, but its elliptic curve could not be determined. Supply algorithmProperties.ellipticCurve or algorithmProperties.curve to verify ECCG-ECDLOG-001.
     - Recommended curves: BrainpoolP256r1, BrainpoolP384r1, BrainpoolP512r1, NIST P-256, NIST P-384, NIST P-521, FRP256v1, Curve25519, and Curve448.
 
 - ECCG-ECDLOG-002:
@@ -291,6 +347,11 @@ These rules are defined in [eccg/general/key_detection.rego](eccg/general/key_de
 Their source entry is commented out in `eccg/main.rego`, so they are not included
 in `data.cbom.eccg.findings`. They can be queried separately through
 `data.cbom.eccg.general.key_detection.findings`.
+
+Key material is read from
+`components[].cryptoProperties.relatedCryptoMaterialProperties`, as specified
+by CycloneDX. Its `size` is an integer; algorithm `parameterSetIdentifier`
+values are strings.
 
 - ECCG-RSA-KEY-001:
     - Severity: high

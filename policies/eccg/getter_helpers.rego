@@ -175,7 +175,8 @@ get_component_dependency_components_or_empty(component) := results if {
 }
 
 get_component_related_crypto_material_properties_or_empty(component) := related_crypto_material_properties if {
-    related_crypto_material_properties := object.get(component, "relatedCryptoMaterialProperties", {})
+    crypto_properties := get_component_crypto_properties_or_empty(component)
+    related_crypto_material_properties := object.get(crypto_properties, "relatedCryptoMaterialProperties", {})
     is_object(related_crypto_material_properties)
     related_crypto_material_properties != {}
 } else := {}
@@ -232,13 +233,23 @@ get_component_algorithm_properties_or_empty(component) := algorithm_properties i
     algorithm_properties != {}
 } else := {}
 
+# Prefer the registry field ellipticCurve, then the older curve field emitted
+# by CBOMkit. Blank or malformed values allow fallback; an explicit nonempty
+# string remains authoritative even when the curve is not agreed.
 get_component_elliptic_curve_or_empty(component) := lower(trim_space(elliptic_curve)) if {
     algorithm_properties := get_component_algorithm_properties_or_empty(component)
     algorithm_properties != {}
 
     elliptic_curve := object.get(algorithm_properties, "ellipticCurve", "")
     is_string(elliptic_curve)
-    elliptic_curve != ""
+    trim_space(elliptic_curve) != ""
+} else := lower(trim_space(curve)) if {
+    algorithm_properties := get_component_algorithm_properties_or_empty(component)
+    algorithm_properties != {}
+
+    curve := object.get(algorithm_properties, "curve", "")
+    is_string(curve)
+    trim_space(curve) != ""
 } else := ""
 
 get_component_algorithm_family_or_empty(component) := lower(trim_space(algorithm_family)) if {
@@ -662,13 +673,13 @@ get_related_crypto_material_finding_details(component) := details if {
 #
 # Detection order:
 # 1. cryptoProperties.algorithmProperties.ellipticCurve
-# 2. cryptoProperties.algorithmProperties.parameterSetIdentifier
-# 3. Recognizable curve token in component.name
+# 2. cryptoProperties.algorithmProperties.curve (legacy field)
+# 3. cryptoProperties.algorithmProperties.parameterSetIdentifier
+# 4. Recognizable curve token in component.name
 #
 # Rationale:
-# CycloneDX 1.7 provides algorithmProperties.ellipticCurve,
-# but CBOM tools may serialize curve information inconsistently.
-# This helper therefore checks multiple possible locations.
+# CycloneDX 1.7 provides algorithmProperties.ellipticCurve and retains the
+# deprecated curve field. The shared curve getter supports both locations.
 #
 # The component-name fallback intentionally extracts only known curve
 # identifiers. A bare algorithm name such as "ECDH" is not a curve and should
