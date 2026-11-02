@@ -37,6 +37,12 @@ import data.cbom.eccg.helpers.legacy_status_severity
 # FR aliases:
 # - anssi/FRP256v1
 # - FRP256v1
+#
+# Edwards family [RFC7748]
+#
+# CycloneDX registry names:
+# - other/Curve25519
+# - other/Curve448
 # ---------------------------------------------------------
 #
 eccg_recommended_ec_curve_names contains "brainpoolbrainpoolp256r1"
@@ -67,6 +73,32 @@ eccg_recommended_ec_curve_names contains "secp521r1"
 
 eccg_recommended_ec_curve_names contains "anssifrp256v1"
 eccg_recommended_ec_curve_names contains "frp256v1"
+
+eccg_recommended_ec_curve_names contains "othercurve25519"
+eccg_recommended_ec_curve_names contains "curve25519"
+
+eccg_recommended_ec_curve_names contains "othercurve448"
+eccg_recommended_ec_curve_names contains "curve448"
+
+
+# Edwards-based digital signatures [RFC8032]
+#
+# CycloneDX registry names:
+# - other/Ed25519
+# - other/Ed448
+#
+# IMPORTANT:
+# Ed25519 and Ed448 are digital signature algorithms, not curve names.
+# They use Edwards25519 and Edwards448, respectively, which are
+# mathematically related to Curve25519 and Curve448.
+#
+# These identifiers are included for compatibility with CycloneDX,
+
+eccg_recommended_ec_curve_names contains "othered25519"
+eccg_recommended_ec_curve_names contains "ed25519"
+
+eccg_recommended_ec_curve_names contains "othered448"
+eccg_recommended_ec_curve_names contains "ed448"
 
 is_rsa_primitive(component) if {
     is_public_key_primitive(component)

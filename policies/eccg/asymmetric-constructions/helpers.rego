@@ -196,7 +196,20 @@ is_eccg_recommended_signature_scheme_name(normalized_name) if {
         "hss",
         "lmshss",
         "dilithium",
-        "crystalsdilithium"
+        "crystalsdilithium",
+        # EdDSA [RFC8032]
+        "eddsa",
+        "ed25519",
+        "ed448",
+        # RSA PKCS#1 v1.5 [RFC8017]
+        "pkcs1v15",
+        "rsapkcs1v15",
+        "rsassapkcs1v15",
+        
+        # Deterministic ECDSA [FIPS186-5]
+        "deterministicecdsa",
+        "ecdsadeterministic",
+        "rfc6979ecdsa",
     }
 } else if {
     startswith(normalized_name, "rsassapss")

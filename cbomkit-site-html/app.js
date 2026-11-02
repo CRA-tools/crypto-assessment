@@ -10,6 +10,7 @@ import { getOpaEndpoint, getSemgrepEndpoint } from "./config/endpoints.js";
 import { buildSemgrepScanRequest } from "./utils/urls.js";
 
 import { generateCbom } from "./api/cbomApi.js";
+import { readCbomFile } from "./utils/cbomUpload.js";
 
 import {
   extractImportantFindings,
@@ -30,9 +31,12 @@ const elements = {
   commit: document.getElementById("commit"),
   pat: document.getElementById("pat"),
   checkButton: document.getElementById("checkButton"),
+  uploadCbomButton: document.getElementById("uploadCbomButton"),
+  uploadCBOM: document.getElementById("uploadCBOM"),
   status: document.getElementById("status"),
   errorBox: document.getElementById("errorBox"),
   results: document.getElementById("results"),
+  resultsTitle: document.getElementById("resultsTitle"),
   complianceBanner: document.getElementById("complianceBanner"),
   summary: document.getElementById("summary"),
   toggleFindingsButton: document.getElementById("toggleFindingsButton"),
@@ -44,6 +48,7 @@ const elements = {
 
 let abortController = null;
 let latestCbom = null;
+let latestCbomFileName = "";
 
 function getInitialTheme() {
   const savedTheme = window.localStorage.getItem("cra-compliance-theme");
@@ -88,6 +93,7 @@ function setCbomDownloadAvailable(isAvailable) {
 
 function clearResults() {
   latestCbom = null;
+  latestCbomFileName = "";
   setCbomDownloadAvailable(false);
 
   elements.results.hidden = true;
@@ -102,6 +108,8 @@ function clearResults() {
 function setBusy(isBusy) {
   elements.checkButton.disabled = isBusy;
   elements.checkButton.textContent = isBusy ? "Checking..." : "Check compliance";
+  elements.uploadCbomButton.disabled = isBusy;
+  elements.uploadCBOM.disabled = isBusy;
 }
 
 function makeErrorMessage(error) {
@@ -174,6 +182,10 @@ async function evaluateRegoPolicy({ cbom, signal }) {
     );
   }
 
+  if (!Array.isArray(body?.result?.findings)) {
+    throw new Error("The policy service did not return a valid findings result.");
+  }
+
   return body;
 }
 
@@ -195,6 +207,10 @@ async function runSemgrep({ form, signal }) {
     throw new Error(
       body?.error || `Semgrep scan failed with HTTP ${response.status}.`
     );
+  }
+
+  if (!Array.isArray(body?.result?.findings)) {
+    throw new Error("Semgrep did not return a valid findings result.");
   }
 
   return body;
@@ -304,7 +320,7 @@ function formatReference(reference) {
   return `${location}${line}${column}`;
 }
 
-function renderComplianceBanner({ allFindings }) {
+function renderComplianceBanner({ allFindings, cbomOnly }) {
   const counts = countSeverities(allFindings);
   const blockingCount = counts.critical + counts.error + counts.high;
   const compliant = blockingCount === 0;
@@ -313,13 +329,19 @@ function renderComplianceBanner({ allFindings }) {
     ? "compliance-banner compliance-banner--pass"
     : "compliance-banner compliance-banner--fail";
 
-  const title = compliant ? "Compliant" : "Not compliant";
+  const title = cbomOnly
+    ? (compliant ? "CBOM policy check passed" : "CBOM policy check failed")
+    : (compliant ? "Compliant" : "Not compliant");
 
-  const message = compliant
+  let message = compliant
     ? "No critical, error, or high findings were detected."
     : `${blockingCount} blocking finding${
         blockingCount === 1 ? "" : "s"
-      } detected. Critical, error, and high findings make the code non-compliant.`;
+      } detected. Critical, error, and high findings fail the check.`;
+
+  if (cbomOnly) {
+    message += " CBOM policy evaluation only. The Semgrep source scan was not run.";
+  }
 
   elements.complianceBanner.innerHTML = `
     <div class="${className}">
@@ -329,7 +351,7 @@ function renderComplianceBanner({ allFindings }) {
   `;
 }
 
-function renderSummary({ regoFindings, semgrepFindings }) {
+function renderSummary({ regoFindings, semgrepFindings, cbomOnly }) {
   const allFindings = [...regoFindings, ...semgrepFindings];
   const counts = countSeverities(allFindings);
   const blockingCount = counts.critical + counts.error + counts.high;
@@ -348,7 +370,7 @@ function renderSummary({ regoFindings, semgrepFindings }) {
       <span>REGO findings</span>
     </div>
     <div class="summary-card">
-      <strong>${escapeHtml(semgrepFindings.length)}</strong>
+      <strong>${cbomOnly ? "Not run" : escapeHtml(semgrepFindings.length)}</strong>
       <span>Semgrep findings</span>
     </div>
   `;
@@ -502,6 +524,7 @@ function renderGroupedFindings(container, title, groups) {
 }
 
 function renderResults({ policyResult, semgrepResult }) {
+  const cbomOnly = semgrepResult === null;
   const regoFindings = extractImportantFindings(policyResult);
   const groupedRegoFindings = groupRegoFindings(regoFindings);
 
@@ -512,14 +535,18 @@ function renderResults({ policyResult, semgrepResult }) {
   const allFindings = [...regoFindings, ...semgrepFindings];
 
   elements.results.hidden = false;
+  elements.resultsTitle.textContent = cbomOnly
+    ? "CBOM policy result"
+    : "Compliance result";
   elements.findingsContainer.hidden = true;
   elements.toggleFindingsButton.textContent = "Show findings";
 
-  renderComplianceBanner({ allFindings });
+  renderComplianceBanner({ allFindings, cbomOnly });
 
   renderSummary({
     regoFindings,
     semgrepFindings,
+    cbomOnly,
   });
 
   renderGroupedFindings(
@@ -528,13 +555,31 @@ function renderResults({ policyResult, semgrepResult }) {
     groupedRegoFindings
   );
 
-  renderGroupedFindings(
-    elements.semgrepResults,
-    "Semgrep findings",
-    groupedSemgrepFindings
-  );
+  if (cbomOnly) {
+    elements.semgrepResults.innerHTML = `
+      <section class="finding-panel">
+        <h3>Semgrep findings</h3>
+        <p class="empty-state">Not run. A repository scan is required for Semgrep findings.</p>
+      </section>
+    `;
+  } else {
+    renderGroupedFindings(
+      elements.semgrepResults,
+      "Semgrep findings",
+      groupedSemgrepFindings
+    );
+  }
 
   setCbomDownloadAvailable(Boolean(latestCbom));
+
+  const hasBlockingFindings = allFindings.some((finding) =>
+    isBlockingSeverity(finding.severity)
+  );
+  setStatus(
+    cbomOnly
+      ? `CBOM policy check finished: ${hasBlockingFindings ? "failed" : "passed"}. Semgrep not run.`
+      : `Compliance check finished: ${hasBlockingFindings ? "not compliant" : "compliant"}`
+  );
 }
 
 function getFormValues() {
@@ -547,9 +592,9 @@ function getFormValues() {
   };
 }
 
-function getCbomDownloadFileName() {
+function getCbomDownloadFileName(repositoryUrl) {
   const repositoryName =
-    elements.repoUrl.value
+    repositoryUrl
       .trim()
       .replace(/\.git$/, "")
       .split("/")
@@ -566,7 +611,7 @@ function getCbomDownloadFileName() {
 
 function downloadLatestCbom() {
   if (!latestCbom) {
-    showError("No generated CBOM is available to download.");
+    showError("No CBOM is available to download.");
     return;
   }
 
@@ -578,7 +623,7 @@ function downloadLatestCbom() {
   const link = document.createElement("a");
 
   link.href = downloadUrl;
-  link.download = getCbomDownloadFileName();
+  link.download = latestCbomFileName;
 
   document.body.appendChild(link);
   link.click();
@@ -587,67 +632,77 @@ function downloadLatestCbom() {
   URL.revokeObjectURL(downloadUrl);
 }
 
-async function handleComplianceCheck(event) {
-  event.preventDefault();
+async function checkCompliance({ file = null, form = null }) {
+  abortController?.abort();
+  const controller = new AbortController();
+  abortController = controller;
 
   clearError();
   clearResults();
+  setBusy(true);
 
+  try {
+    let cbom;
+    if (file) {
+      setStatus("Reading CBOM file...");
+      cbom = await readCbomFile(file);
+    } else {
+      cbom = await generateCbom({
+        ...form,
+        signal: controller.signal,
+        onStatus: (message) => {
+          if (abortController === controller) setStatus(message);
+        },
+      });
+    }
+    if (abortController !== controller) return;
+
+    latestCbom = cbom;
+    latestCbomFileName = file ? file.name : getCbomDownloadFileName(form.url);
+
+    const policyResult = await evaluateRegoPolicy({
+      cbom,
+      signal: controller.signal,
+    });
+    if (abortController !== controller) return;
+
+    const semgrepResult = file
+      ? null
+      : await runSemgrep({ form, signal: controller.signal });
+    if (abortController !== controller) return;
+
+    renderResults({ policyResult, semgrepResult });
+  } catch (error) {
+    if (abortController === controller) {
+      setStatus(file ? "CBOM policy check failed" : "Compliance check failed");
+      showError(makeErrorMessage(error));
+    }
+  } finally {
+    if (abortController === controller) {
+      abortController = null;
+      setBusy(false);
+    }
+  }
+}
+
+async function handleCBOMUpload() {
+  const file = elements.uploadCBOM.files?.[0];
+  // Allow choosing the same file again, including after a failed evaluation.
+  elements.uploadCBOM.value = "";
+  if (!file) return;
+
+  await checkCompliance({ file });
+}
+
+async function handleComplianceCheck(event) {
+  event.preventDefault();
   const form = getFormValues();
-
   if (!form.url) {
     showError("Enter a Git URL first.");
     return;
   }
 
-  abortController?.abort();
-  abortController = new AbortController();
-
-  setBusy(true);
-
-  try {
-    const cbom = await generateCbom({
-      ...form,
-      signal: abortController.signal,
-      onStatus: setStatus,
-    });
-
-    latestCbom = cbom;
-
-    const policyResult = await evaluateRegoPolicy({
-      cbom,
-      signal: abortController.signal,
-    });
-
-    const semgrepResult = await runSemgrep({
-      form,
-      signal: abortController.signal,
-    });
-
-    renderResults({
-      policyResult,
-      semgrepResult,
-    });
-
-    const regoFindings = extractImportantFindings(policyResult);
-    const semgrepFindings = getSemgrepFindings(semgrepResult);
-    const allFindings = [...regoFindings, ...semgrepFindings];
-    const blockingCount = allFindings.filter((finding) =>
-      isBlockingSeverity(finding.severity)
-    ).length;
-
-    setStatus(
-      blockingCount > 0
-        ? "Compliance check finished: not compliant"
-        : "Compliance check finished: compliant"
-    );
-  } catch (error) {
-    setStatus("Compliance check failed");
-    showError(makeErrorMessage(error));
-  } finally {
-    abortController = null;
-    setBusy(false);
-  }
+  await checkCompliance({ form });
 }
 
 function toggleFindings() {
@@ -664,6 +719,13 @@ elements.darkModeToggle.addEventListener("change", (event) => {
 });
 
 elements.form.addEventListener("submit", handleComplianceCheck);
+
+elements.uploadCbomButton.addEventListener("click", () => {
+  elements.uploadCBOM.click();
+});
+
+elements.uploadCBOM.addEventListener("change", handleCBOMUpload);
+
 elements.toggleFindingsButton.addEventListener("click", toggleFindings);
 
 elements.downloadCbomButton.addEventListener("click", downloadLatestCbom);
