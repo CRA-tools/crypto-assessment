@@ -11,6 +11,16 @@ import data.cbom.eccg.symmetric_constructions.key_protection.findings
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("AES KW with trailing key size", [test_helpers.algorithm("AES-KW-256", "key-wrap", {})], []),
+	test_helpers.case("AES KWP with trailing key size", [test_helpers.algorithm("AES-KWP-256", "key-wrap", {})], []),
+	test_helpers.case("AES KeyWrap with trailing key size", [test_helpers.algorithm("AES-KeyWrap-256", "key-wrap", {})], []),
+	test_helpers.case("AES family supplies cipher for KW", [test_helpers.algorithm("KW-256", "key-wrap", {"algorithmFamily": "AES"})], []),
+	test_helpers.case("RFC5297 SIV with trailing key size", [test_helpers.algorithm("AES-SIV-256", "ae", {})], []),
+	test_helpers.case("AES family alone cannot identify a wrapping construction", [test_helpers.algorithm("opaque", "key-wrap", {"algorithmFamily": "AES"})], [{"ruleId": "ECCG-KP-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("GCM-SIV is not the RFC5297 SIV construction", [test_helpers.algorithm("AES-256-GCM-SIV-128-96", "ae", {})], [{"ruleId": "ECCG-KP-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("AES Wrap with padding", [test_helpers.algorithm("AES-256-Wrap-PKCS7", "key-wrap", {})], []),
+	test_helpers.case("RSA wrapping is not AES key wrap", [test_helpers.algorithm("RSA-KeyWrap", "key-wrap", {})], [{"ruleId": "ECCG-KP-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("custom SIV composite", [test_helpers.algorithm("AES-SIV-custom", "key-wrap", {})], [{"ruleId": "ECCG-KP-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("agreed AES-KW", [test_helpers.algorithm("AES-KW", "key-wrap", {})], []),
 	test_helpers.case("agreed AES-KWP", [test_helpers.algorithm("AES-KWP", "key-wrap", {})], []),
 	test_helpers.case("agreed AES-KeyWrap", [test_helpers.algorithm("AES-KeyWrap", "key-wrap", {})], []),

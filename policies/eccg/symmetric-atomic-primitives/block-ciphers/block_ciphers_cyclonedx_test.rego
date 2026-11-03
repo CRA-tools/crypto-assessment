@@ -11,6 +11,9 @@ import data.cbom.eccg.symmetric_atomic_primitives.block_ciphers.block_ciphers.fi
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("provider 3DES name retains legacy check", [test_helpers.algorithm("provider-TripleDES-CBC", "block-cipher", {"parameterSetIdentifier": "168"})], [{"ruleId": "ECCG-BLOCK-001", "severity": "critical", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-BLOCK-003", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("AES mode does not change cipher family", [test_helpers.algorithm("AES-256-custom-mode", "block-cipher", {"parameterSetIdentifier": "256"})], []),
+	test_helpers.case("AES family in implementation name", [test_helpers.algorithm("custom-AES", "block-cipher", {"parameterSetIdentifier": "256"})], []),
 	# An agreed AES size can still require a quantum-security advisory. AES-192 and AES-256
 	# produce no findings in this section.
 	test_helpers.case("AES 128 bits", [test_helpers.algorithm("AES", "block-cipher", {"parameterSetIdentifier": "128"})], [{"ruleId": "ECCG-BLOCK-005", "severity": "medium", "bomRef": "algorithm-under-test"}]),

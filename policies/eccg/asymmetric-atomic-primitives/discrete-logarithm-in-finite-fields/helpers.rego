@@ -56,6 +56,9 @@ is_ffdlog_primitive(component) if {
 } else if {
 	name := normalize_crypto_identifier(get_component_name_or_empty(component))
 	regex.match("^(dh|dhe|ffdh|ffdhe|modp|ffdlog)[0-9]+$", name)
+} else if {
+	name := normalize_crypto_identifier(get_component_name_or_empty(component))
+	regex.match("^(dsa[0-9]+|sha[0-9]+withdsa|dsa(with)?sha[0-9]+)$", name)
 }
 
 # Both scheme-family constants contain FFDH, which cannot distinguish

@@ -10,6 +10,12 @@ import data.cbom.eccg.symmetric_atomic_primitives.hashes.hash_primitives.finding
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("truncated SHA3 is not its parent hash", [test_helpers.algorithm("SHA3-256/128", "hash", {"algorithmFamily": "SHA-3"})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("SHA-512/224 normalization", [test_helpers.algorithm("SHA_512(224)", "hash", {"parameterSetIdentifier": "224"})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("generic SHA-2 family does not approve SHA-512/224", [test_helpers.algorithm("SHA-512/224", "hash", {"algorithmFamily": "SHA-2", "parameterSetIdentifier": "224"})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("unknown OID falls back to forbidden hash name", [test_helpers.with_oid(test_helpers.algorithm("SHA-512/224", "hash", {}), "1.2.3.4.5")], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("custom SHA-256 composite", [test_helpers.algorithm("custom-SHA-256", "hash", {"parameterSetIdentifier": "256"})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("normalized agreed SHA-512/256", [test_helpers.algorithm(" SHA_512(256) ", "hash", {"parameterSetIdentifier": "256"})], [{"ruleId": "ECCG-HASH-002", "severity": "medium", "bomRef": "algorithm-under-test"}]),
 	# Agreed SHA-2 and SHA-3 variants may still emit the quantum advisory for a short
 	# declared output.
 	test_helpers.case("agreed SHA-256", [test_helpers.algorithm("SHA-256", "hash", {"parameterSetIdentifier": "256"})], [{"ruleId": "ECCG-HASH-002", "severity": "medium", "bomRef": "algorithm-under-test"}]),
@@ -28,7 +34,7 @@ cases := [
 	test_helpers.case("output threshold 'unknown'", [test_helpers.algorithm("SHA-384", "hash", {"parameterSetIdentifier": "unknown"})], [{"ruleId": "ECCG-HASH-002", "severity": "medium", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("known hash OID", [test_helpers.with_oid(test_helpers.algorithm("opaque", "hash", {"parameterSetIdentifier": "384"}), "2.16.840.1.101.3.4.2.2")], []),
 	test_helpers.case("unagreed MD5", [test_helpers.algorithm("MD5", "hash", {"algorithmFamily": "MD5"})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
-	test_helpers.case("unagreed SHA-512/224", [test_helpers.algorithm("SHA-512/224", "hash", {"parameterSetIdentifier": "256"})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("unagreed SHA-512/224", [test_helpers.algorithm("SHA-512/224", "hash", {"parameterSetIdentifier": "224"})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("unidentified hash", [test_helpers.algorithm("unidentified", "hash", {})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	# The registry family describes several hashes and cannot select a concrete agreed
 	# function by itself.

@@ -120,7 +120,7 @@ findings contains finding if {
     finding := build_finding(
         "ECCG-HMAC-001",
         "medium",
-        sprintf("%s is safe for quantum sensitive contexts, when output size is at least %d bits.", [get_component_name_or_empty(component), MINIMUM_RECOMMENDED_BITS_FOR_QUANTUM_SENSITIVE_CONTEXT_MACS]),
+        sprintf("For %s in quantum-sensitive contexts, verify that the actual key size is at least %d bits. The algorithm name and MAC output length do not establish the key size.", [get_component_name_or_empty(component), MINIMUM_RECOMMENDED_BITS_FOR_QUANTUM_SENSITIVE_CONTEXT_MACS]),
         component,
         object.union(
             mac_scheme_metadata(component),

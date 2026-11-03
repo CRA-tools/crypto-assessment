@@ -18,21 +18,8 @@ compliant if count(findings) == 0
 SECTION = "Symmetric-Constructions"
 SUBSECTION = "Key-Derivation-Functions"
 
-#
-# ---------------------------------------------------------
-# ECCG-KDF-001
-# HKDF, PBKDF2, ANSI-X9.63-KDF, and NIST SP800-56A/B/C
-# are the only recommended symmetric key derivation mechanisms.
-#
-# ECCG classification: non-agreed KDF usage
-#
-# This rule detects KDF schemes that are not one of:
-# - NIST SP800-56A/B/C
-# - ANSI-X9.63-KDF
-# - PBKDF2
-# - HKDF
-# ---------------------------------------------------------
-#
+# ECCG Section 3.7 explicitly describes this list as non-exhaustive.
+# An unlisted KDF requires review rather than a confirmed rejection.
 findings contains finding if {
     some i
     component := input.components[i]
@@ -42,9 +29,9 @@ findings contains finding if {
 
     finding := build_finding(
         "ECCG-KDF-001",
-        "critical",
+        "medium",
         sprintf(
-            "%s KDF scheme detected. HKDF, PBKDF2, ANSI-X9.63-KDF, and derivation methods defined in NIST SP800-56A/B/C are the only recommended symmetric key derivation mechanisms.",
+            "KDF scheme '%s' is not identified among the listed ECCG constructions: HKDF, PBKDF2, ANSI-X9.63-KDF, and NIST SP800-56A/B/C. This list is not exhaustive; review the construction and its parameters before determining compliance.",
             [get_component_name_or_empty(component)]
         ),
         component,
@@ -52,19 +39,8 @@ findings contains finding if {
     )
 }
 
-#
-# ---------------------------------------------------------
-# ECCG-KDF-002
-# With PBKDF2, HMAC is used as pseudo random function. The master
-# secret length should be equal to the hash function message block length.
-#
-# Relevant notes:
-# - Note 26 (PBKDF2-PRF)
-#
-# This rule detects PBKDF2 use where the master secret length is known
-# and does not match the underlying hash function message block length.
-# ---------------------------------------------------------
-#
+# Note 26 requires an agreed PRF. Key lengths are not established by the
+# construction name, so the HMAC pre-hashing condition remains an advisory.
 findings contains finding if {
     some i
     component := input.components[i]

@@ -11,6 +11,24 @@ import data.cbom.eccg.cyclonedx_test_helpers as test_helpers
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("ECDSA with SHA3 in JCA form", [test_helpers.algorithm("SHA3-256withECDSA", "signature", {})], []),
+	test_helpers.case("ECDSA with SHA3 suffix", [test_helpers.algorithm("ECDSA-SHA3-256", "signature", {})], []),
+	test_helpers.case("ECDSA curve and hash are separate parameters", [test_helpers.algorithm("ECDSA-secp256r1-SHA3-256", "signature", {})], []),
+	test_helpers.case("PSS with SHA3", [test_helpers.algorithm("RSA-PSS-SHA3-256", "signature", {})], []),
+	test_helpers.case("PSS with non-SHA hash label", [test_helpers.algorithm("RSA-PSS-BLAKE2b-256", "signature", {})], []),
+	test_helpers.case("PSS with hash and MGF in JCA form", [test_helpers.algorithm("SHA3-256withRSAandMGF1", "signature", {})], []),
+	test_helpers.case("PKCS1 v1.5 with SHA3 remains acceptable", [test_helpers.algorithm("SHA3-256withRSA", "signature", {})], []),
+	test_helpers.case("PKCS1 v1.5 with parameterized name", [test_helpers.algorithm("RSA-PKCS1-1.5-SHA3-256-3072", "signature", {})], []),
+	test_helpers.case("DSA with SHA3", [test_helpers.algorithm("SHA3-256withDSA", "signature", {})], []),
+	test_helpers.case("KCDSA with hash suffix", [test_helpers.algorithm("KCDSA-SHA3-256", "signature", {})], []),
+	test_helpers.case("EC KCDSA with hash suffix", [test_helpers.algorithm("EC-KCDSA-SHA3-256", "signature", {})], []),
+	test_helpers.case("EC GDSA with hash suffix", [test_helpers.algorithm("EC-GDSA-SHA3-256", "signature", {})], []),
+	test_helpers.case("EC Schnorr with hash suffix", [test_helpers.algorithm("EC-Schnorr-SHA3-256", "signature", {})], []),
+	test_helpers.case("Schnorr with parameters", [test_helpers.algorithm("Schnorr-SHA256-3072", "signature", {})], []),
+	test_helpers.case("Deterministic ECDSA with parameters", [test_helpers.algorithm("Deterministic-ECDSA-SHA3-256", "signature", {})], []),
+	test_helpers.case("EdDSA with context suffix", [test_helpers.algorithm("Ed25519-ctx", "signature", {})], []),
+	test_helpers.case("LMS construction recognized before parameter review", [test_helpers.algorithm("LMS-SHA256-M32-H10", "signature", {})], []),
+	test_helpers.case("ECDSA recognition is independent of curve approval", [test_helpers.algorithm("ECDSA-secp256k1-SHA256", "signature", {"ellipticCurve": "secg/secp256k1"})], []),
 	# These cases assess signature-scheme agreement only. Other sections may independently
 	# report modulus or curve findings for the same asset.
 	test_helpers.case("agreed RSA-PSS", [test_helpers.algorithm("RSA-PSS", "signature", {})], []),

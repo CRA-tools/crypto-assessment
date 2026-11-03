@@ -3,8 +3,19 @@
 Run from the repository root:
 
 ```bash
-docker compose run --rm --no-deps opa-local test /policies
+# Complete suite, including the additional tests
+docker compose run --rm --no-deps opa-local test /policies --fail-on-empty --timeout 30s
+
+# All section suites
+docker compose run --rm --no-deps opa-local test /policies --run 'section_tests\.' --fail-on-empty
+
+# Additional helper, integration, and regression suites
+docker compose run --rm --no-deps opa-local test /policies --run '_test\.' --fail-on-empty
 ```
+
+The complete suite includes both groups. No separate flag is needed to include
+the additional tests. Use `--timeout 30s` if a large parameterized suite exceeds
+the default test timeout.
 
 With OPA installed locally, use `opa test policies/eccg`. The Docker service
 pins the project's OPA version. To select one section, add
@@ -82,10 +93,10 @@ findings through `data.cbom.eccg.findings`, including section metadata.
 | XOFs | `xofs` | SHAKE/cSHAKE, OIDs, 256-bit threshold |
 | AES modes | `aes_modes` | Conditional modes, ECB rejection, IV and GCM notes |
 | Authenticated encryption | `authenticated_encryption` | GCM, CCM, EAX, rejection and component attribution |
-| MACs | `macs` | HMAC/KMAC, CBC-MAC, GMAC, 2030 cutoff, occurrence-window boundaries |
+| MACs | `macs` | HMAC construction and hash variants, KMAC, CBC-MAC, GMAC, 2030 cutoff, occurrence-window boundaries |
 | Disk encryption | `disk_encryption` | XTS, CBC-ESSIV, stream-cipher and context warnings |
 | Key combiners | `key_combiners` | Declared combiners, dependency graphs, same-file evidence |
-| Key derivation | `key_derivation` | Agreed KDFs, PBKDF2 PRF note, unknown KDFs |
+| Key derivation | `key_derivation` | Listed KDFs, PBKDF2 PRF note, medium findings for unlisted KDFs |
 | Key protection | `key_protection` | AES-KW/KWP, SIV, wrapping OIDs, context warnings |
 | Password protection | `password_protection` | PBKDF2, Argon2id, parameter advisories, KDF context |
 | RSA | `rsa` | 3000-bit boundary, missing/invalid modulus strings, OIDs and families |
@@ -101,6 +112,25 @@ Key-material policies are tested directly; they remain excluded from the main
 assessment. The integration suite checks this exclusion and verifies that every
 active policy source has a section suite. Existing focused helper and malformed
 input tests remain alongside these suites.
+
+All 19 section suites include identifier-detection cases. Construction recognition
+is tested separately from parameter approval: AES-ECB remains an AES cipher but
+receives a critical mode finding, and ECDSA can be recognized while its curve is
+rejected by EC-DLOG.
+
+`symmetric_identifier_matching_test.rego` covers name fallback, parameter suffixes,
+broad-family ambiguity, and distinct variants such as SHA-512/224, cSHAKE and
+CBC-MAC. Run it with `--run 'symmetric_identifier_matching_test'`.
+
+HMAC cases verify that hash variants such as HMAC-SHA224 and HMAC-SHA512/224
+remain agreed MAC constructions. Standalone SHA-224 and SHA-512/224 hash
+components are still checked against the hash-primitive allowlist.
+
+Construction regressions cover KMAC and SHAKE output-length suffixes, KDF names
+with hash and PRF parameters, X9.63 aliases, AES-KW key sizes, and SHA-3 signature
+names. They also distinguish RFC5297 SIV from AES-GCM-SIV. Signature fixtures
+accept both `R` and `A` entries; unlisted KDF fixtures expect a medium finding because
+the ECCG KDF list is not exhaustive.
 
 ## Helper type contracts
 
@@ -149,6 +179,10 @@ Valid fixture documents use the schema's algorithm-family, curve, and mode
 values. Unknown parameter strings can still be valid CycloneDX and are tested
 as insufficient policy evidence. Malformed-type and flattened-field tests are
 separate unit tests, not part of the valid-document export.
+
+`ANSI-KDF` and `SP800-56C` family compatibility is tested separately in
+`symmetric_identifier_matching_test.rego`; these registry values are absent from
+the CycloneDX 1.7 schema enum. Their detection remains supported by the policies.
 
 Tests mock `time.now_ns` for deterministic legacy cutoffs. They do not add the
 nonstandard `policyEvaluationDate` property to CycloneDX documents. Note-based

@@ -11,6 +11,10 @@ import data.cbom.eccg.symmetric_constructions.symmetric_encryption_schemes.aes_m
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("CBC with padding and IV length", [test_helpers.algorithm("AES-256-CBC-PKCS7Padding-128", "block-cipher", {})], [{"ruleId": "ECCG-SYM-ENC-002", "severity": "warning", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-SYM-ENC-003", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("CFB64 is a CFB construction", [test_helpers.algorithm("AES-256-CFB64", "block-cipher", {})], [{"ruleId": "ECCG-SYM-ENC-002", "severity": "warning", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-SYM-ENC-003", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("ECB with padding remains forbidden", [test_helpers.algorithm("AES-256-ECB-PKCS7Padding", "block-cipher", {})], [{"ruleId": "ECCG-SYM-ENC-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("custom CBC composite", [test_helpers.algorithm("AES-CBC-custom", "block-cipher", {})], [{"ruleId": "ECCG-SYM-ENC-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	# Agreed confidentiality modes retain integrity and IV review warnings. These fixtures
 	# do not establish how the application generates IVs or provides integrity.
 	test_helpers.case("conditional CTR", [test_helpers.algorithm("AES-CTR", "block-cipher", {})], [{"ruleId": "ECCG-SYM-ENC-002", "severity": "warning", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-SYM-ENC-003", "severity": "warning", "bomRef": "algorithm-under-test"}]),

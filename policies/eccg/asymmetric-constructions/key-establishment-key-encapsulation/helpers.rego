@@ -46,9 +46,9 @@ scheme_from_name(name) := scheme if {
 } else := "DLIES-KEM" if {
 	regex.match(`^dlies[-_ ]kem[-_ ](ffdhe|modp)?[-_ ]?[0-9]+$`, name)
 } else := "EC-DH" if {
-	regex.match(`^ec[-_ ]?dh[ec]?[-_ ]((nist[/_-])?p[-_ ]?(256|384|521)|secp(256r1|384r1|521r1)|brainpoolp(256|384|512)r1|curve(25519|448))$`, name)
+	regex.match(`^ec[-_ ]?dh[ec]?[-_ ]((nist[/_-])?p[-_ ]?[0-9]+|secp[0-9]+[rk][0-9]+|brainpoolp[0-9]+[rt][0-9]+|curve(25519|448))$`, name)
 } else := "ECIES-KEM" if {
-	regex.match(`^ecies[-_ ]kem[-_ ]((nist[/_-])?p[-_ ]?(256|384|521)|secp(256r1|384r1|521r1)|brainpoolp(256|384|512)r1|curve(25519|448))$`, name)
+	regex.match(`^ecies[-_ ]kem[-_ ]((nist[/_-])?p[-_ ]?[0-9]+|secp[0-9]+[rk][0-9]+|brainpoolp[0-9]+[rt][0-9]+|curve(25519|448))$`, name)
 } else := "ML-KEM" if {
 	regex.match(`^ml[-_ ]?kem[-_ ]?(512|768|1024)$`, name)
 } else := "FrodoKEM" if {

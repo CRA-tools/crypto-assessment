@@ -10,6 +10,8 @@ import data.cbom.eccg.cyclonedx_test_helpers as test_helpers
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("provider RSA name retains modulus check", [test_helpers.algorithm("provider-RSA-PSS", "signature", {"parameterSetIdentifier": "2048"})], [{"ruleId": "ECCG-RSA-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("RSA signature spelling retains modulus check", [test_helpers.algorithm("SHA384withRSAandMGF1", "signature", {"parameterSetIdentifier": "2048"})], [{"ruleId": "ECCG-RSA-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	# Exercise the exact 3000-bit boundary as well as common smaller and larger RSA sizes.
 	test_helpers.case("RSA modulus 2048", [test_helpers.algorithm("RSA", "pke", {"parameterSetIdentifier": "2048"})], [{"ruleId": "ECCG-RSA-001", "severity": "critical", "bomRef": "algorithm-under-test", "modulusBits": 2048, "minimumModulusBits": 3000}]),
 	test_helpers.case("RSA modulus 2999", [test_helpers.algorithm("RSA", "pke", {"parameterSetIdentifier": "2999"})], [{"ruleId": "ECCG-RSA-001", "severity": "critical", "bomRef": "algorithm-under-test", "modulusBits": 2999, "minimumModulusBits": 3000}]),

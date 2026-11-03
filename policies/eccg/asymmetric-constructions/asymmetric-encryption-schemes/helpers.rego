@@ -45,11 +45,11 @@ get_asymmetric_encryption_scheme_or_empty(component) := scheme if {
 scheme_from_name(name) := scheme if {
 	scheme := normalized_names[normalize_crypto_identifier(name)]
 } else := "RSAES-OAEP" if {
-	regex.match(`^(rsa|rsaes)[-_ /]oaep([-_ /]|$)`, name)
+	regex.match(`^(rsa|rsaes)[-_ /]oaep([-_ /]sha-?(1|224|256|384|512))?([-_ /]mgf1)?([-_ /][0-9]+)?$`, name)
 } else := "RSAES-OAEP" if {
 	regex.match(`^rsa/(ecb|none)/oaep(withsha-?(1|224|256|384|512)andmgf1)?padding$`, name)
 } else := "RSAES-PKCS1-v1_5" if {
-	regex.match(`^(rsa|rsaes)[-_ /]pkcs1[-_ /](v1[._]?5|1[.]5)([-_ /]|$)`, name)
+	regex.match(`^(rsa|rsaes)[-_ /]pkcs1[-_ /](v1[._]?5|1[.]5)([-_ /][0-9]+)?$`, name)
 } else := "RSA-NoPadding" if {
 	regex.match(`^rsa[-_ /]nopadding([-_ /]|$)`, name)
 } else := "ECIES" if {
@@ -83,7 +83,7 @@ is_asymmetric_encryption_component(component) if {
 # RSA-KEM	Key encapsulation	kem
 has_non_encryption_family(component) if {
 	family := normalize_crypto_identifier(get_component_algorithm_family_or_empty(component))
-	startswith(family, "rsassa")
+	contains(family, "rsassa")
 } else if {
 	family := normalize_crypto_identifier(get_component_algorithm_family_or_empty(component))
 	family == "rsax931"

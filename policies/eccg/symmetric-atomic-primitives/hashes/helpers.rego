@@ -20,9 +20,6 @@ hash_primitive_metadata(component) := {
     "minimumRecommendedHashBitsForQuantumSensitiveContext": MINIMUM_RECOMMENDED_BITS_FOR_QUANTUM_SENSITIVE_CONTEXT_HASH,
 }
 
-#
-# Helpers: identify SHA functions.
-#
 is_sha256(component) if {
     is_hash_primitive(component)
     oid := get_component_oid_or_empty(component)
@@ -30,7 +27,7 @@ is_sha256(component) if {
 } else if {
     is_hash_primitive(component)
     normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-    contains(normalized_name, "sha256")
+    normalized_name == "sha256"
 }
 
 
@@ -41,7 +38,7 @@ is_sha384(component) if {
 } else if {
     is_hash_primitive(component)
     normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-    contains(normalized_name, "sha384")
+    normalized_name == "sha384"
 }
 
 is_sha512(component) if {
@@ -51,7 +48,7 @@ is_sha512(component) if {
 } else if {
     is_hash_primitive(component)
     normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-    contains(normalized_name, "sha512")
+    normalized_name == "sha512"
 }
 
 is_sha512_256(component) if {
@@ -61,7 +58,7 @@ is_sha512_256(component) if {
 } else if {
     is_hash_primitive(component)
     normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-    contains(normalized_name, "sha512/256")
+    normalized_name == "sha512256"
 }
 
 is_sha3_256(component) if {
@@ -71,7 +68,7 @@ is_sha3_256(component) if {
 } else if {
     is_hash_primitive(component)
     normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-    contains(normalized_name, "sha3256")
+    normalized_name == "sha3256"
 }
 
 is_sha3_384(component) if {
@@ -81,7 +78,7 @@ is_sha3_384(component) if {
 } else if {
     is_hash_primitive(component)
     normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-    contains(normalized_name, "sha3384")
+    normalized_name == "sha3384"
 }
 
 is_sha3_512(component) if {
@@ -91,7 +88,7 @@ is_sha3_512(component) if {
 } else if {
     is_hash_primitive(component)
     normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-    contains(normalized_name, "sha3512")
+    normalized_name == "sha3512"
 }
 
 is_agreed_hash_component(component) if {

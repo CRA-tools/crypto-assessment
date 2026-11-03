@@ -1,6 +1,6 @@
 package cbom.eccg.symmetric_constructions.symmetric_authenticated_disk_encryption_schemes.helpers
 
-import data.cbom.eccg.general_helpers.normalize_crypto_identifier
+import data.cbom.eccg.general_helpers.matches_aes_construction_name
 
 import data.cbom.eccg.classifying_helpers.is_block_cipher_primitive
 import data.cbom.eccg.classifying_helpers.is_ae_primitive
@@ -49,6 +49,7 @@ import data.cbom.eccg.symmetric_constructions.symmetric_authenticated_disk_encry
 import data.cbom.eccg.symmetric_constructions.symmetric_authenticated_disk_encryption.constants.XTS_DISK_ENCRYPTION_SCHEME_NAMES
 
 import data.cbom.eccg.symmetric_constructions.key_protection.helpers.is_agreed_key_protection_scheme
+import data.cbom.eccg.symmetric_constructions.key_protection.helpers.is_gcm_siv_scheme
 
 
 symmetric_encryption_scheme_metadata(component) := {
@@ -69,8 +70,7 @@ is_ecb_scheme(component) if {
 } else if {
     is_stream_cipher_or_block_cipher_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "ecb")
+    matches_aes_construction_name(name, "ecb")
 }
 
 is_ctr_scheme(component) if {
@@ -86,8 +86,7 @@ is_ctr_scheme(component) if {
 } else if {
     is_stream_cipher_or_block_cipher_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "ctr")
+    matches_aes_construction_name(name, "ctr")
 }
 
 is_ofb_scheme(component) if {
@@ -103,8 +102,7 @@ is_ofb_scheme(component) if {
 } else if {
     is_stream_cipher_or_block_cipher_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "ofb")
+    matches_aes_construction_name(name, "ofb")
 }
 
 is_cbc_scheme(component) if {
@@ -117,11 +115,11 @@ is_cbc_scheme(component) if {
     family == lower(known_family)
     mode := get_component_mode_or_empty(component)
     mode == "cbc"
+    not matches_aes_construction_name(get_component_name_or_empty(component), "cbc[-_ ]?(cs[123]?|essiv(:sha256)?)")
 } else if {
     is_block_cipher_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "cbc")
+    matches_aes_construction_name(name, "cbc")
 }
 
 # there is no supported mode for cbs-cs
@@ -132,13 +130,11 @@ is_cbc_cs_scheme(component) if {
 } else if {
     is_block_cipher_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "cbccs")
+    matches_aes_construction_name(name, "cbc[-_ ]?cs[123]?")
 } else if {
     is_block_cipher_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "cts")
+    matches_aes_construction_name(name, "cts")
 }
 
 
@@ -155,8 +151,7 @@ is_cfb_scheme(component) if {
 } else if {
     is_block_cipher_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "cfb")
+    matches_aes_construction_name(name, "cfb(1|8|64|128)?")
 }
 
 is_agreed_symmetric_encryption_scheme(component) if {
@@ -190,8 +185,7 @@ is_xts_scheme(component) if {
 } else if {
     is_block_cipher_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "xts")
+    matches_aes_construction_name(name, "xts")
 }
 
 
@@ -208,8 +202,7 @@ is_cbc_essiv_scheme(component) if {
 } else if {
     is_block_cipher_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "cbcessiv")
+    matches_aes_construction_name(name, "cbc[-_ ]?essiv(:sha256)?")
 } else if {
     is_cbc_essiv_heuristic(component)
 }
@@ -264,8 +257,7 @@ is_ccm_scheme(component) if {
     mode == "ccm"
     is_ae_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "ccm")
+    matches_aes_construction_name(name, "ccm")
 }
 
 is_gcm_scheme(component) if {
@@ -278,13 +270,13 @@ is_gcm_scheme(component) if {
     family == lower(known_family)
     mode := get_component_mode_or_empty(component)
     mode == "gcm"
+    not is_gcm_siv_scheme(component)
 } else if {
     mode := get_component_mode_or_empty(component)
     mode == "gcm"
     is_ae_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "gcm")
+    matches_aes_construction_name(name, "gcm")
 }
 
 is_eax_scheme(component) if {
@@ -294,8 +286,7 @@ is_eax_scheme(component) if {
 } else if {
     is_ae_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "eax")
+    matches_aes_construction_name(name, "eax")
 }
 
 is_agreed_authenticated_encryption_scheme(component) if {

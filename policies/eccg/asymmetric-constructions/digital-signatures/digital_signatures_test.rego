@@ -147,7 +147,7 @@ test_aliases_and_parameterized_names if {
 # Declared signature usage remains critical when no agreed construction can be
 # established.
 test_unknown_generic_and_misleading_signatures_are_rejected if {
-	every algorithm_name in ["", "CustomSig", "RSA", "RSASSA", "EC", "Falcon", "SM2", "Dilithium", "SPHINCS+", "not-ECDSA", "ECDSA-wrapper", "DSAnything", "ML-DSA-wrapper", "ML-DSA-650", "SLH-DSA-SHAKE-256s-custom", "RSA-PKCS1-1.50", "Ed25519+ML-DSA"] {
+	every algorithm_name in ["", "CustomSig", "RSA", "RSASSA", "EC", "Falcon", "SM2", "Dilithium", "SPHINCS+", "not-ECDSA", "ECDSAish", "DSAnything", "ML-DSA-wrapper", "ML-DSA-650", "SLH-DSA-SHAKE-256s-custom", "RSA-PKCS1-1.50", "Ed25519+ML-DSA"] {
 		actual_findings := findings with input as {"components": [component(algorithm_name, "", "")]}
 		count(actual_findings) == 1
 		some finding in actual_findings

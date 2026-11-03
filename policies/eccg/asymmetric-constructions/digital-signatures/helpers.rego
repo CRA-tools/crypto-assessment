@@ -36,8 +36,7 @@ get_digital_signature_scheme_or_empty(component) := scheme if {
 	family != ""
 } else := get_component_name_or_empty(component)
 
-# Exact normalized aliases and fully anchored parameterized names prevent
-# accidental acceptance of arbitrary prefixes, suffixes, and composite schemes.
+# Identify the construction independently of hash, curve, and key parameters.
 # Getters supply lowercase, trimmed strings.
 scheme_from_name(name) := scheme if {
 	scheme := normalized_names[normalize_crypto_identifier(name)]
@@ -46,21 +45,44 @@ scheme_from_name(name) := scheme if {
 } else := "SLH-DSA" if {
 	regex.match(`^slh[-_ ]?dsa[-_ ](sha2|shake)[-_ ](128|192|256)[sf]$`, name)
 } else := "XMSS" if {
-	regex.match(`^xmss(mt)?[-_ ](sha2|shake|shake256)[-_ ][0-9]+([-_/][0-9]+)*$`, name)
+	matches_signature_name(name, "xmss(mt)?")
 } else := "LMS" if {
-	regex.match(`^(hss[-_/])?lms[-_ ]sha256[-_ ]m(24|32)[-_ ]h(5|10|15|20|25)$`, name)
+	matches_signature_name(name, "(hss[-_/])?lms")
 } else := "RSASSA-PSS" if {
-	regex.match(`^(rsa|rsassa)[-_ ]?pss([-_ ]sha-?(1|224|256|384|512))?([-_ ]mgf1)?([-_ ](max|[0-9]+))?([-_ ][0-9]+)?$`, name)
+	matches_signature_name(name, "(rsa|rsassa)[-_ ]?pss")
 } else := "RSASSA-PSS" if {
-	regex.match(`^sha-?(1|224|256|384|512)withrsa(andmgf1|/pss)$`, name)
+	regex.match(`^[a-z0-9][a-z0-9._/-]*withrsa(andmgf1|/pss)$`, name)
 } else := "RSASSA-PKCS1-v1_5" if {
-	regex.match(`^sha-?(1|224|256|384|512)withrsa(encryption)?$`, name)
+	regex.match(`^[a-z0-9][a-z0-9._/-]*withrsa(encryption)?$`, name)
 } else := "RSASSA-PKCS1-v1_5" if {
-	regex.match(`^(rsa|rsassa)[-_ ]pkcs#?1[-_ ](v1[._]?5|1[.]5)([-_ ]sha-?(1|224|256|384|512))?([-_ ][0-9]+)?$`, name)
+	matches_signature_name(name, "(rsa|rsassa)[-_ ]pkcs#?1[-_ ](v1[._]?5|1[.]5)")
+} else := "Deterministic ECDSA" if {
+	matches_signature_name(name, "(deterministic[-_ ]ecdsa|ecdsa[-_ ]deterministic|rfc6979[-_ ]ecdsa)")
 } else := "ECDSA" if {
-	regex.match(`^(sha-?(1|224|256|384|512)withecdsa|ecdsa[-_ ]with[-_ ]sha-?(1|224|256|384|512)|ecdsa[-_ ](p[-_ ]?)?(256|384|521))$`, name)
+	regex.match(`^[a-z0-9][a-z0-9._/-]*withecdsa$`, name)
+} else := "ECDSA" if {
+	matches_signature_name(name, "ec[-_ ]?dsa")
 } else := "DSA" if {
-	regex.match(`^(sha-?(1|224|256|384|512)withdsa|dsa[-_ ](with[-_ ])?sha-?(1|224|256|384|512)|dsa[-_ ][0-9]+)$`, name)
+	regex.match(`^[a-z0-9][a-z0-9._/-]*withdsa$`, name)
+} else := "DSA" if {
+	matches_signature_name(name, "dsa")
+} else := "KCDSA" if {
+	matches_signature_name(name, "kcdsa")
+} else := "Schnorr" if {
+	matches_signature_name(name, "schnorr")
+} else := "EC-KCDSA" if {
+	matches_signature_name(name, "ec[-_ ]?kcdsa")
+} else := "EC-GDSA" if {
+	matches_signature_name(name, "ec[-_ ]?gdsa")
+} else := "EC-Schnorr" if {
+	matches_signature_name(name, "ec[-_ ]?schnorr")
+} else := "EdDSA" if {
+	matches_signature_name(name, "(eddsa|ed(25519|448)(ph|ctx)?)")
+}
+
+matches_signature_name(name, construction_pattern) if {
+	pattern := sprintf(`^(%s)([-_/ ][a-z0-9][a-z0-9._/ -]*)?$`, [construction_pattern])
+	regex.match(pattern, name)
 }
 
 # Explicit primitive and asset type take precedence over inference. When a

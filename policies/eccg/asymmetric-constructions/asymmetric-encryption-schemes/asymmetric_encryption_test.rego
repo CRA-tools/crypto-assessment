@@ -80,6 +80,12 @@ only_finding(test_component) := rule_finding(test_component, "ECCG-AS-ENC-001") 
 	test_types.is_string_keyed_object(test_component)
 }
 
+test_labeled_signature_family_excludes_inferred_encryption if {
+	test_component := with_primitive(component("RSA-OAEP", "provider-RSASSA-PSS", ""), "")
+	actual_findings := findings with input as {"components": [test_component]}
+	count(actual_findings) == 0
+}
+
 # Verify OAEP recognition independently through its OID, family, and name, including
 # expected advisories.
 test_oaep_by_oid_family_and_name if {

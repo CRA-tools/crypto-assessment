@@ -11,6 +11,7 @@ import data.cbom.eccg.random_number_generation.deterministic_random_bit_generato
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("DRBG wrapper is not the generator", [test_helpers.algorithm("HMAC_DRBG-SHA256-wrapper", "drbg", {})], [{"ruleId": "ECCG-DRBG-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("HMAC DRBG", [test_helpers.algorithm("HMAC_DRBG", "drbg", {})], [{"ruleId": "ECCG-DRBG-002", "severity": "warning", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-DRBG-003", "severity": "warning", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-DRBG-004", "severity": "warning", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("Hash DRBG", [test_helpers.algorithm("Hash_DRBG-SHA256", "drbg", {})], [{"ruleId": "ECCG-DRBG-002", "severity": "warning", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-DRBG-003", "severity": "warning", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-DRBG-004", "severity": "warning", "bomRef": "algorithm-under-test"}]),
 	# CTR_DRBG receives the three general warnings and the additional block-cipher key-size

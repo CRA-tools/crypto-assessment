@@ -11,6 +11,8 @@ import data.cbom.eccg.symmetric_constructions.disk_encryption.findings
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("XTS with cipher suffix", [test_helpers.algorithm("XTS-AES-256", "block-cipher", {})], [{"ruleId": "ECCG-DISK-003", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("custom XTS composite", [test_helpers.algorithm("AES-XTS-custom", "block-cipher", {})], [{"ruleId": "ECCG-DISK-001", "severity": "low", "bomRef": "algorithm-under-test"}]),
 	# An agreed construction still needs review of tweak or sector-number handling.
 	test_helpers.case("XTS tweak notes", [test_helpers.algorithm("AES-XTS", "block-cipher", {})], [{"ruleId": "ECCG-DISK-003", "severity": "warning", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("CBC ESSIV sector notes", [test_helpers.algorithm("AES-CBC-ESSIV", "block-cipher", {})], [{"ruleId": "ECCG-DISK-004", "severity": "warning", "bomRef": "algorithm-under-test"}]),

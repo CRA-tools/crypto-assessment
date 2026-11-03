@@ -165,7 +165,9 @@ test_lowercase_getter_convention_matches_policy_family_constants if {
 	data.cbom.eccg.symmetric_constructions.key_derivation.helpers.is_pbkdf2_scheme(pbkdf2_component)
 	data.cbom.eccg.symmetric_constructions.password_protection.helpers.is_pbkdf2_scheme(pbkdf2_component)
 	argon2_component := ec_component("unknown", {"primitive": " KDF ", "algorithmFamily": " aRgOn2 "})
-	data.cbom.eccg.symmetric_constructions.password_protection.helpers.is_argon2id_scheme(argon2_component)
+	not data.cbom.eccg.symmetric_constructions.password_protection.helpers.is_argon2id_scheme(argon2_component)
+	argon2id_component := ec_component(" aRgOn2Id ", {"primitive": " KDF ", "algorithmFamily": " aRgOn2 "})
+	data.cbom.eccg.symmetric_constructions.password_protection.helpers.is_argon2id_scheme(argon2id_component)
 }
 
 # Dependency joins trim whitespace but retain bom-ref case sensitivity; invalid or

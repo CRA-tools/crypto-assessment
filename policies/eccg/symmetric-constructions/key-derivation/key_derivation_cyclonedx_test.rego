@@ -3,13 +3,29 @@ package cbom.eccg.section_tests.key_derivation
 import data.cbom.eccg.cyclonedx_test_helpers as test_helpers
 import data.cbom.eccg.symmetric_constructions.key_derivation.findings
 
-# Key-derivation findings (ECCG-KDF-001 and ECCG-KDF-002). Agreed KDFs avoid rejection;
-# PBKDF2 additionally requires review of its underlying PRF.
+# Key-derivation findings (ECCG-KDF-001 and ECCG-KDF-002). The list is not exhaustive;
+# unlisted constructions and PBKDF2 PRF requirements receive review advisories.
 #
 # Each test_helpers.case supplies a complete CycloneDX BOM and explicit expected findings. An empty
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("HKDF does not whitelist hash suffixes", [test_helpers.algorithm("HKDF-BLAKE2b", "kdf", {})], []),
+	test_helpers.case("HKDF with hash family and output parameters", [test_helpers.algorithm("HKDF-HMAC-RIPEMD160-256", "kdf", {})], []),
+	test_helpers.case("PBKDF2 does not whitelist PRF suffixes", [test_helpers.algorithm("PBKDF2-HMAC-RIPEMD160", "kdf", {})], [{"ruleId": "ECCG-KDF-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("PBKDF2 PRF note applies beyond HMAC", [test_helpers.algorithm("PBKDF2-CMAC-AES-256", "kdf", {})], [{"ruleId": "ECCG-KDF-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("X963KDF SHA224 alias", [test_helpers.algorithm("X963KDF-SHA224", "kdf", {})], []),
+	test_helpers.case("X963KDF with another hash suffix", [test_helpers.algorithm("ANSI-X9.63-KDF-SHA3-256", "kdf", {})], []),
+	test_helpers.case("SP80056C one step with SHA3", [test_helpers.algorithm("SP800-56C-OneStep-SHA3-256", "kdf", {})], []),
+	test_helpers.case("SP80056C one step with KMAC", [test_helpers.algorithm("SP800-56C-OneStep-KMAC128-256", "kdf", {})], []),
+	test_helpers.case("HKDF with unverified parameter label", [test_helpers.algorithm("HKDF-custom", "kdf", {})], []),
+	test_helpers.case("SP80056C with unverified parameter label", [test_helpers.algorithm("SP800-56C-custom", "kdf", {})], []),
+	test_helpers.case("PBKDF2 with unverified PRF label", [test_helpers.algorithm("PBKDF2-custom", "kdf", {})], [{"ruleId": "ECCG-KDF-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("PBKDF2 with hash iterations and output length", [test_helpers.algorithm("PBKDF2-HMAC-SHA256-600000-32", "kdf", {})], [{"ruleId": "ECCG-KDF-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("HKDF with truncated SHA512", [test_helpers.algorithm("HKDF-SHA512/256", "kdf", {})], []),
+	test_helpers.case("SP800-56C with auxiliary function and output length", [test_helpers.algorithm("SP800_56C_OneStep-SHA256-256", "kdf", {})], []),
+	test_helpers.case("ANSI X9.42 is not X9.63", [test_helpers.algorithm("ANSI-X9.42-KDF", "kdf", {})], [{"ruleId": "ECCG-KDF-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("custom HKDF composite", [test_helpers.algorithm("custom-HKDF", "kdf", {})], [{"ruleId": "ECCG-KDF-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("agreed HKDF", [test_helpers.algorithm("HKDF", "kdf", {})], []),
 	test_helpers.case("agreed ANSI-X9.63-KDF", [test_helpers.algorithm("ANSI-X9.63-KDF", "kdf", {})], []),
 	test_helpers.case("agreed SP800-56A", [test_helpers.algorithm("SP800-56A", "kdf", {})], []),
@@ -19,8 +35,8 @@ cases := [
 	# Opaque names ensure the OID and registry-family recognition branches are exercised.
 	test_helpers.case("PBKDF2 OID", [test_helpers.with_oid(test_helpers.algorithm("opaque", "kdf", {}), "1.2.840.113549.1.5.12")], [{"ruleId": "ECCG-KDF-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("HKDF registry family", [test_helpers.algorithm("opaque", "kdf", {"algorithmFamily": "HKDF"})], []),
-	test_helpers.case("unagreed scrypt", [test_helpers.algorithm("scrypt", "kdf", {})], [{"ruleId": "ECCG-KDF-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
-	test_helpers.case("unknown KDF", [test_helpers.algorithm("custom-kdf", "kdf", {})], [{"ruleId": "ECCG-KDF-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("unlisted scrypt requires review rather than rejection", [test_helpers.algorithm("scrypt", "kdf", {})], [{"ruleId": "ECCG-KDF-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("unknown KDF", [test_helpers.algorithm("custom-kdf", "kdf", {})], [{"ruleId": "ECCG-KDF-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("different primitive", [test_helpers.algorithm("PBKDF2", "hash", {})], []),
 	test_helpers.case("source evidence is retained", [test_helpers.with_occurrence(test_helpers.algorithm("PBKDF2-HMAC-SHA256", "kdf", {}), "src/crypto.py", 42)], [{"ruleId": "ECCG-KDF-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
 ]

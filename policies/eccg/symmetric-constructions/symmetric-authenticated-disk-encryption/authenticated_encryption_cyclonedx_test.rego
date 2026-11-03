@@ -11,6 +11,10 @@ import data.cbom.eccg.symmetric_constructions.symmetric_authenticated_disk_encry
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("GCM with tag and IV lengths", [test_helpers.algorithm("AES-256-GCM-128-96", "ae", {"mode": "gcm"})], [{"ruleId": "ECCG-SEAS-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("AES family and GCM mode do not hide SIV", [test_helpers.algorithm("AES-256-GCM-SIV-128-96", "ae", {"algorithmFamily": "AES", "mode": "gcm"})], [{"ruleId": "ECCG-SEAS-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("GCM-SIV does not inherit GCM agreement", [test_helpers.algorithm("AES-GCM-SIV", "ae", {"mode": "gcm"})], [{"ruleId": "ECCG-SEAS-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("custom CCM composite", [test_helpers.algorithm("AES-CCM-custom", "ae", {"mode": "ccm"})], [{"ruleId": "ECCG-SEAS-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	# Agreement does not prove challenge uniqueness or length; the operational warning
 	# remains for each agreed scheme.
 	test_helpers.case("agreed GCM", [test_helpers.algorithm("AES-GCM", "ae", {"mode": "gcm"})], [{"ruleId": "ECCG-SEAS-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),

@@ -1,6 +1,8 @@
 package cbom.eccg.symmetric_constructions.macs.helpers
 
+import data.cbom.eccg.general_helpers.matches_aes_construction_name
 import data.cbom.eccg.general_helpers.normalize_crypto_identifier
+import data.cbom.eccg.general_helpers.matches_crypto_identifier
 import data.cbom.eccg.general_helpers.is_legacy_marker_active
 
 import data.cbom.eccg.getter_helpers.get_component_algorithm_family_or_empty
@@ -45,7 +47,7 @@ mac_scheme_metadata(component) := {
 is_hmac_scheme(component) if {
     is_mac_primitive(component)
     oid := get_component_oid_or_empty(component)
-    oid in HMAC_MAC_ALGORITHM_OID_VALUES
+    oid in HMAC_MAC_ALGORITHM_OID_VALUES | HMAC_SHA1_ALGORITHM_OID_VALUES
 } else if {
     is_mac_primitive(component)
     algorithm_family := get_component_algorithm_family_or_empty(component)
@@ -54,9 +56,8 @@ is_hmac_scheme(component) if {
 } else if {
     is_mac_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "hmac")
-} 
+    contains(normalize_crypto_identifier(name), "hmac")
+}
 
 is_hmac_sha1_scheme(component) if {
     is_mac_primitive(component)
@@ -65,8 +66,11 @@ is_hmac_sha1_scheme(component) if {
 } else if {
     is_mac_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "hmacsha1")
+    some algorithm_name in HMAC_SHA1_ALGORITHM_NAMES
+    endswith(normalize_crypto_identifier(name), normalize_crypto_identifier(algorithm_name))
+} else if {
+    is_mac_primitive(component)
+    regex.match(`hmac[-_ ]sha[-_ ]?1[-_ ][0-9]+$`, get_component_name_or_empty(component))
 }
 
 is_kmac_scheme(component) if {
@@ -75,14 +79,23 @@ is_kmac_scheme(component) if {
     oid in KMAC_MAC_ALGORITHM_OID_VALUES
 } else if {
     is_mac_primitive(component)
-    algorithm_family := get_component_algorithm_family_or_empty(component)
-    some known_family in KMAC_MAC_ALGORITHM_FAMILIES
-    algorithm_family == lower(known_family)
+    matches_crypto_identifier(get_component_algorithm_family_or_empty(component), KMAC_MAC_ALGORITHM_FAMILIES)
 } else if {
     is_mac_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "kmac")
+    matches_kmac_name(name)
+}
+
+matches_kmac_name(name) if {
+    matches_crypto_identifier(name, KMAC_MAC_ALGORITHM_NAMES)
+} else if {
+    regex.match(`^kmac[-_ ]?(128|256)([-_/ ][0-9]+)*$`, lower(name))
+}
+
+has_unsupported_kmac_name(component) if {
+    name := get_component_name_or_empty(component)
+    contains(normalize_crypto_identifier(name), "kmac")
+    not matches_kmac_name(name)
 }
 
 is_gmac_scheme(component) if {
@@ -92,8 +105,7 @@ is_gmac_scheme(component) if {
 } else if {
     is_mac_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "gmac")
+    matches_aes_construction_name(name, "gmac")
 }
 
 is_cmac_scheme(component) if {
@@ -108,8 +120,7 @@ is_cmac_scheme(component) if {
 } else if {
     is_mac_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "cmac")
+    matches_aes_construction_name(name, "cmac")
 }
 
 # This is not defined in the CycloneDX specification
@@ -120,11 +131,13 @@ is_cbcmac_scheme(component) if {
 } else if {
     is_mac_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "cbcmac")
+    matches_aes_construction_name(name, "cbc[-_ ]?mac")
 }
 
 is_agreed_hmac_scheme(component) if {
+    is_mac_primitive(component)
+    get_component_oid_or_empty(component) in HMAC_MAC_ALGORITHM_OID_VALUES
+} else if {
     is_hmac_sha1_scheme(component) 
     is_legacy_marker_active(HMAC_SHA1_LEGACY_MARKER)
 } else if {
@@ -133,7 +146,11 @@ is_agreed_hmac_scheme(component) if {
 }
 
 is_agreed_kmac_scheme(component) if {
+    is_mac_primitive(component)
+    get_component_oid_or_empty(component) in KMAC_MAC_ALGORITHM_OID_VALUES
+} else if {
     is_kmac_scheme(component)
+    not has_unsupported_kmac_name(component)
 }
 
 is_agreed_gmac_scheme(component) if {

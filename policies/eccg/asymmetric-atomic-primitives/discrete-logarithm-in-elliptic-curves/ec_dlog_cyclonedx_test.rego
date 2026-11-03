@@ -43,6 +43,9 @@ cbomkit_curve_components := [
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("provider ECDH name retains curve check", [test_helpers.algorithm("provider-ECDH-P256", "key-agree", {})], [{"ruleId": "ECCG-ECDLOG-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("provider ECIES name requires curve metadata", [test_helpers.algorithm("prefix-ECIES", "pke", {})], [{"ruleId": "ECCG-ECDLOG-001", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("ECDSA construction cannot approve secp256k1", [test_helpers.algorithm("ECDSA-secp256k1-SHA256", "signature", {"ellipticCurve": "secg/secp256k1"})], [{"ruleId": "ECCG-ECDLOG-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	# These reported components must yield the NIST SpecialP advisory instead of
 	# ECCG-ECDLOG-001. The combined case also checks attribution and deduplication.
 	test_helpers.case("CBOMkit ECDH curve field", [cbomkit_curve_components[0]], [{"ruleId": "ECCG-ECDLOG-002", "severity": "warning", "bomRef": "f52196ff-8e46-49d9-8d8e-a59b5cd2f377", "curve": "NIST P-256"}]),

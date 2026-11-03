@@ -62,11 +62,8 @@ is_3des_component(component) if {
 } else if {
     is_block_cipher_primitive(component)
     normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-    contains(normalized_name, "3des")
-} else if {
-    is_block_cipher_primitive(component)
-    normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-    contains(normalized_name, "tripledes")
+    some family_name in {"3des", "tripledes", "tdea", "desede3"}
+    contains(normalized_name, family_name)
 }
 
 is_agreed_block_cipher_component(component) if {

@@ -11,6 +11,8 @@ import data.cbom.eccg.cyclonedx_test_helpers as test_helpers
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("OAEP wrapper is not the OAEP construction", [test_helpers.algorithm("RSA-OAEP-wrapper", "pke", {})], [{"ruleId": "ECCG-AS-ENC-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("PKCS1 wrapper is not the PKCS1 construction", [test_helpers.algorithm("RSA-PKCS1-1.5-wrapper", "pke", {})], [{"ruleId": "ECCG-AS-ENC-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	# An agreed RSA encryption scheme still requires padding and quantum-resistance review;
 	# an empty finding set is not expected.
 	test_helpers.case("OAEP advisories", [test_helpers.algorithm("RSAES-OAEP", "pke", {})], [{"ruleId": "ECCG-AS-ENC-002", "severity": "warning", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-AS-ENC-004", "severity": "warning", "bomRef": "algorithm-under-test"}, {"ruleId": "ECCG-AS-ENC-005", "severity": "warning", "bomRef": "algorithm-under-test"}]),

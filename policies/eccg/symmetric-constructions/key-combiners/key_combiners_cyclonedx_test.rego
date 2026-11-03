@@ -11,6 +11,7 @@ import data.cbom.eccg.symmetric_constructions.key_combiners.findings
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("key-establishment name cannot change hash primitive", [test_helpers.algorithm("ECDH", "hash", {})], []),
 	test_helpers.case("declared combiner", [test_helpers.algorithm("SP800-56C", "combiner", {})], [{"ruleId": "ECCG-KC-001", "severity": "warning", "bomRef": "algorithm-under-test", "method": "declared_combiner_primitive", "heuristic": true}]),
 	# Resolve root dependencies by bom-ref. The candidate must depend on two distinct
 	# key-establishment assets and a combining operation.

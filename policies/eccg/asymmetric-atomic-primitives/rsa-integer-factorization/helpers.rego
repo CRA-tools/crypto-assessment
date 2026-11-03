@@ -52,11 +52,11 @@ is_rsa_scheme(component) if {
 	name := get_component_name_or_empty(component)
 
 	# Registry-style RSA names may append hash, padding, or size parameters.
-	regex.match("^(rsa|rsaes|rsassa)([-_/ ]|$)", name)
+	regex.match("(^|[-_/ ])(rsa|rsaes|rsassa)([-_/ ]|$)", name)
 } else if {
 	is_public_key_eccg_primitive(component)
 	normalized_name := normalize_crypto_identifier(get_component_name_or_empty(component))
-	regex.match("^(rsa[0-9]+|sha[0-9]+withrsa)$", normalized_name)
+	regex.match("^(rsa[0-9]+|sha[0-9]+withrsa(encryption|andmgf1|pss)?)$", normalized_name)
 }
 
 # Use the CBOM's parameterSetIdentifier, not a size embedded in the name.

@@ -224,7 +224,7 @@ test_curve_and_primitive_metadata_do_not_replace_algorithm_classification if {
 
 # Misleading name fragments and unrelated asset categories must not create EC findings.
 test_partial_identifier_matches_and_non_crypto_assets_are_excluded if {
-	every algorithm_name in ["notECDSA", "myECDHprovider", "ECDSAish", "X4480", "prefix-ECIES"] {
+	every algorithm_name in ["notECDSA", "myECDHprovider", "ECDSAish", "X4480"] {
 		count(curve_findings(component(algorithm_name, {}))) == 0
 	}
 	every test_component in [

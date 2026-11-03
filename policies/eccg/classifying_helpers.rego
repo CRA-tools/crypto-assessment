@@ -172,11 +172,6 @@ is_key_establishment_primitive(component) if {
 }
 
 
-is_key_establishment_primitive(component) if {
-    name := get_component_mode_or_empty(component)
-    regex.match(`^(ecdh|ecdhe|x25519|x448|ml[-_]?kem|kyber)(-|_|$)`, name)
-}
-
 is_sign_crypto_function(component) if {
     asset_type := get_component_asset_type_or_empty(component)
     asset_type in ["algorithm", "related-crypto-material"]

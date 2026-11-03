@@ -10,6 +10,12 @@ import data.cbom.eccg.symmetric_constructions.password_hashing.findings
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("PBKDF2 parameters retain password protection advisory", [test_helpers.algorithm("PBKDF2-HMAC-SHA256-600000-32", "kdf", {})], [{"ruleId": "ECCG-PWH-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("Argon2id parameters retain password protection advisory", [test_helpers.algorithm("Argon2id-2097152-1-4", "kdf", {"algorithmFamily": "Argon2"})], [{"ruleId": "ECCG-PWH-003", "severity": "warning", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("Argon2i is not Argon2id", [test_helpers.algorithm("Argon2i", "kdf", {"algorithmFamily": "Argon2"})], [{"ruleId": "ECCG-PWH-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("Argon2d is not Argon2id", [test_helpers.algorithm("Argon2d", "kdf", {})], [{"ruleId": "ECCG-PWH-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("Argon2 family is insufficient", [test_helpers.algorithm("opaque", "kdf", {"algorithmFamily": "Argon2"})], [{"ruleId": "ECCG-PWH-001", "severity": "medium", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("PBKDF2 with unspecified PRF needs parameter review", [test_helpers.algorithm("PBKDF2-custom", "kdf", {})], [{"ruleId": "ECCG-PWH-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
 	# These warnings request parameter verification; the CBOM does not prove iteration
 	# count, salt generation, or Argon2 memory use.
 	test_helpers.case("PBKDF2 iteration and salt notes", [test_helpers.algorithm("PBKDF2", "kdf", {})], [{"ruleId": "ECCG-PWH-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),

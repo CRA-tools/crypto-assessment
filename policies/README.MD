@@ -19,15 +19,24 @@ and the combined assessment. Section tests use complete CycloneDX 1.7 CBOMs.
 Run the commands below from the repository root, where `docker-compose.yml` is
 located. Docker must be running. The `opa-local` service uses OPA 1.15.1.
 
-Run all tests:
+Run all section suites, helper tests, integration tests, and regressions:
 
 ```bash
-docker compose run --rm --no-deps opa-local test /policies
+docker compose run --rm --no-deps opa-local test /policies --fail-on-empty --timeout 30s
 ```
 
 Use `--run` to select a suite:
 
 ```bash
+# All 19 section suites
+docker compose run --rm --no-deps opa-local test /policies --run 'section_tests\.' --fail-on-empty
+
+# Additional helper, integration, and regression suites
+docker compose run --rm --no-deps opa-local test /policies --run '_test\.' --fail-on-empty
+
+# Identifier matching regressions, including SHA-512/224 and family fallback
+docker compose run --rm --no-deps opa-local test /policies --run 'symmetric_identifier_matching_test' --fail-on-empty
+
 # Block cipher policies
 docker compose run --rm --no-deps opa-local test /policies --run 'section_tests.block_ciphers'
 
@@ -42,11 +51,13 @@ docker compose run --rm --no-deps opa-local test /policies --run 'test_type_help
 `--fail-on-empty` to fail if the filter matches no tests, or `--verbose` to show
 individual test results and failure traces. A successful run ends with
 `PASS: <passed>/<total>`. Test failures return a nonzero exit status.
+Use `--timeout 30s` when a large parameterized suite exceeds the default test
+timeout.
 
 With OPA 1.15.1 installed locally, run:
 
 ```bash
-opa test policies/eccg
+opa test policies/eccg --fail-on-empty --timeout 30s
 ```
 
 From the `policies` directory, use `opa test eccg`. The same `--run` and
@@ -108,6 +119,10 @@ to validate the fixtures against the official CycloneDX schemas.
 - ECCG-XOF-002:
     - Severity: medium
     - Message: XOF function '[xof-function]' has output length [x] bits, which is below the recommended 256 bits for quantum-sensitive contexts
+
+SHAKE128, SHAKE256, cSHAKE128, and cSHAKE256 are agreed constructions. Numeric
+output-length suffixes, such as `SHAKE128-256`, do not change that classification.
+SHAKE and cSHAKE remain distinct; the output-length advisory is assessed separately.
 
 ## Symmetric Constructions
 
@@ -174,11 +189,23 @@ to validate the fixtures against the official CycloneDX schemas.
 
 - ECCG-HMAC-001:
     - Severity: medium
-    - Message: [scheme] is safe for quantum sensitive contexts, when output size is at least 192 bits.
-    - Applies to HMAC and KMAC; this is an advisory finding and does not verify actual key or output lengths.
+    - Message: For [scheme] in quantum-sensitive contexts, verify that the actual key size is at least 192 bits. The algorithm name and MAC output length do not establish the key size.
+    - Applies to HMAC and KMAC; this is an advisory finding and does not verify actual key lengths.
+
+HMAC is agreed as a construction. Its hash variant does not cause an
+ECCG-MAC-001 rejection: HMAC-SHA224 and HMAC-SHA512/224 are accepted and retain
+the MAC truncation and quantum-context advisories. The standalone hash-primitive
+allowlist is assessed separately.
 
 HMAC-SHA1 is accepted only through 2030. From 2031 it produces the critical
 ECCG-MAC-001 finding, including when identified through a generic HMAC family.
+
+KMAC128 and KMAC256 remain agreed when their names include an output length,
+such as `KMAC128-256`. Other variants, including KMACXOF, are not listed in this
+table. The table requires at least 125-bit keys for acceptable HMAC and KMAC128,
+and at least 250-bit keys for recommended HMAC and KMAC256. These conditions
+require verification of the actual key; recognizing the construction does not
+verify them.
 
 - ECCG-CBC-MAC-001:
     - Severity: warning
@@ -208,6 +235,11 @@ ECCG-MAC-001 finding, including when identified through a generic HMAC family.
 
 ### Agreed Key Protection Schemes
 
+The agreed constructions are RFC5297 SIV and AES Key Wrap (KW and KWP).
+Names with key-size suffixes, such as `AES-KW-256` and `AES-SIV-256`, identify
+these constructions. AES-GCM-SIV is distinct from RFC5297 SIV and does not
+inherit its classification.
+
 - ECCG-KP-001:
     - Severity: medium
     - Message: Key protection scheme '[scheme]' is not in the agreed key-protection list. Agreed schemes are AES Key Wrap, AES Key Wrap with Padding, and SIV. This might be a false positive since there is no way to distinguish key protection schemes from the CBOM.
@@ -215,17 +247,23 @@ ECCG-MAC-001 finding, including when identified through a generic HMAC family.
 ### Agreed Key Derivation Functions
 
 - ECCG-KDF-001:
-    - Severity: critical
-    - Message: [scheme] KDF scheme detected. HKDF, PBKDF2, ANSI-X9.63-KDF, and derivation methods defined in NIST SP800-56A/B/C are the only recommended symmetric key derivation mechanisms.
+    - Severity: medium
+    - Message: KDF scheme '[scheme]' is not identified among the listed ECCG constructions: HKDF, PBKDF2, ANSI-X9.63-KDF, and NIST SP800-56A/B/C. This list is not exhaustive; review the construction and its parameters before determining compliance.
 
 - ECCG-KDF-002:
     - Severity: warning
     - Message: PBKDF2 scheme detected: [scheme]. Ensure that the underlying pseudo-random function (PRF) is an agreed cryptographic mechanism. If HMAC is used, verify that the HMAC key length does not exceed the underlying hash function's message block length without considering the security implications. Longer keys are pre-hashed, which may reduce the effective entropy of the key derived using PBKDF2. Note that this might overlap with password-hashing, since they mostly use the same underlying primitives.
 
+Section 3.7 explicitly states that the KDF list is not exhaustive. An unlisted
+construction therefore receives a medium finding requiring review. Hash or PRF labels in names
+such as `HKDF-BLAKE2b`, `PBKDF2-HMAC-RIPEMD160`, and `X963KDF-SHA224` do not
+change which KDF construction is identified. PBKDF2 still requires review of
+its PRF under Note 26; recognizing its name does not approve that PRF.
+
 ### Agreed Password Hashing Mechanisms
 
 - ECCG-PWH-001:
-    - Severity: critical
+    - Severity: medium
     - Message: Password hashing mechanism '[scheme]' is not based on the agreed schemes. Note that there is no way to differentiate, whether this is a KDF or a password hash from the CBOM alone. The agreed schemes are: [agreed password hashing schemes]
 
 - ECCG-PWH-002:
@@ -333,10 +371,13 @@ inconclusive; identifying an RSA key alone does not establish encryption use.
 
 - ECCG-DG-001:
     - Severity: critical
-    - Message: Digital signature scheme '[scheme]' is not listed as an ECCG recommended digital signature scheme. The recommended digital signature schemes are [recommended signature schemes].
-    - Severity: warning for a legacy signature scheme.
-    - Message: Digital signature scheme '[scheme]' is legacy in the ECCG digital signature table and is not one of the recommended schemes. The recommended digital signature schemes are [recommended signature schemes].
-    - Recommended schemes: RSASSA-PSS, KCDSA, Schnorr, DSA, EC-KCDSA, ECDSA / EC-DSA, EC-GDSA, EC-Schnorr, ML-DSA, XMSS, LMS, and SLH-DSA. The legacy scheme is RSASSA-PKCS1-v1_5.
+    - Message: Digital signature scheme '[scheme]' is not in the ECCG agreed scheme list. The agreed digital signature schemes are: [agreed signature schemes].
+    - Agreed schemes: RSASSA-PSS, KCDSA, Schnorr, DSA, EC-KCDSA, ECDSA / EC-DSA, EC-GDSA, EC-Schnorr, Deterministic ECDSA, EdDSA, ML-DSA, XMSS, LMS, SLH-DSA, and RSASSA-PKCS1-v1_5.
+
+Both recommended (`R`) and acceptable (`A`) entries are agreed. PKCS#1 v1.5
+signatures do not receive a legacy warning from this rule. Hash labels and
+parameter suffixes, such as `SHA3-256withECDSA` and `RSA-PSS-SHA3-256`, identify
+the signature construction; parameter and primitive checks remain separate.
 
 
 ## General

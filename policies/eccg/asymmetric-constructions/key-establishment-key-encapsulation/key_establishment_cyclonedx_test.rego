@@ -11,6 +11,7 @@ import data.cbom.eccg.cyclonedx_test_helpers as test_helpers
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("ECDH recognition is independent of curve approval", [test_helpers.algorithm("ECDH-secp256k1", "key-agree", {"ellipticCurve": "secg/secp256k1"})], [{"ruleId": "ECCG-KEE-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("agreed DH", [test_helpers.algorithm("DH", "key-agree", {})], [{"ruleId": "ECCG-KEE-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("agreed DLIES-KEM", [test_helpers.algorithm("DLIES-KEM", "key-agree", {})], [{"ruleId": "ECCG-KEE-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("agreed EC-DH", [test_helpers.algorithm("EC-DH", "key-agree", {})], [{"ruleId": "ECCG-KEE-002", "severity": "warning", "bomRef": "algorithm-under-test"}]),

@@ -11,6 +11,7 @@ import data.cbom.eccg.cyclonedx_test_helpers as test_helpers
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("DSA signature spelling retains group check", [test_helpers.algorithm("SHA256withDSA", "signature", {"parameterSetIdentifier": "2048"})], [{"ruleId": "ECCG-FFDLOG-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("agreed MODP-3072", [test_helpers.algorithm("DH", "key-agree", {"parameterSetIdentifier": "MODP-3072"})], []),
 	test_helpers.case("agreed ffdhe3072", [test_helpers.algorithm("DH", "key-agree", {"parameterSetIdentifier": "ffdhe3072"})], []),
 	# The minimum is inclusive: 3071 bits is rejected, while 3072 bits and larger satisfy

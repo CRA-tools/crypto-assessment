@@ -65,6 +65,20 @@ normalize_crypto_identifier(name) := normalized if {
     )
 }
 
+matches_crypto_identifier(identifier, known_identifiers) if {
+    normalized_identifier := normalize_crypto_identifier(identifier)
+    some known_identifier in known_identifiers
+    normalized_identifier == normalize_crypto_identifier(known_identifier)
+}
+
+matches_aes_construction_name(name, construction_pattern) if {
+    normalized_name := normalize_crypto_identifier(name)
+    pattern := sprintf(`^((aes[0-9]*)?(%s)|(%s)aes[0-9]*)$`, [construction_pattern, construction_pattern])
+    regex.match(pattern, normalized_name)
+} else if {
+    pattern := sprintf(`^((aes([-_ /]?[0-9]+)?[-_ /])?(%s)|(%s)[-_ /]aes([-_ /]?[0-9]+)?)([-_ /](no|pkcs5|pkcs7|iso10126|zero)padding)?([-_ ][0-9]+){0,2}$`, [construction_pattern, construction_pattern])
+    regex.match(pattern, lower(name))
+}
 
 #
 # Return the policy evaluation timestamp in nanoseconds.
@@ -92,7 +106,6 @@ evaluation_year := year if {
     year := parts[0]
 }
 
-
 #
 # Convert an ECCG legacy marker like L[2030] into a year.
 #
@@ -105,7 +118,6 @@ legacy_marker_year(marker) := year if {
     year_text := trim_suffix(trim_prefix(marker, "L["), "]")
     year := to_number(year_text)
 }
-
 
 #
 # Produce a status string for a legacy marker.

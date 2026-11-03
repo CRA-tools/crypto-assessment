@@ -1,6 +1,7 @@
 package cbom.eccg.symmetric_constructions.key_derivation.helpers
 
 import data.cbom.eccg.general_helpers.normalize_crypto_identifier
+import data.cbom.eccg.general_helpers.matches_crypto_identifier
 
 import data.cbom.eccg.getter_helpers.get_component_oid_or_empty
 import data.cbom.eccg.getter_helpers.get_component_name_or_empty
@@ -19,6 +20,11 @@ import data.cbom.eccg.symmetric_constructions.key_derivation.constants.PBKDF2_KD
 import data.cbom.eccg.symmetric_constructions.key_derivation.constants.PBKDF2_KDF_FAMILIES
 import data.cbom.eccg.symmetric_constructions.key_derivation.constants.HKDF_KDF_OID_VALUES
 import data.cbom.eccg.symmetric_constructions.key_derivation.constants.HKDF_KDF_FAMILIES
+import data.cbom.eccg.symmetric_constructions.key_derivation.constants.ANSI_X963_KDF_NAMES
+import data.cbom.eccg.symmetric_constructions.key_derivation.constants.NIST_SP800_56_KDF_NAMES
+import data.cbom.eccg.symmetric_constructions.key_derivation.constants.NIST_SP800_56_KDF_FAMILIES
+import data.cbom.eccg.symmetric_constructions.key_derivation.constants.PBKDF2_KDF_NAMES
+import data.cbom.eccg.symmetric_constructions.key_derivation.constants.HKDF_KDF_NAMES
 
 
 
@@ -28,16 +34,20 @@ is_kdf_scheme_metadata(component) := {
 }
 
 
-# No family name in the CycloneDX specification
 is_nist_sp800_scheme(component) if {
     is_kdf_primitive(component)
     oid := get_component_oid_or_empty(component)
     oid in NIST_SP800_56_KDF_OID_VALUES
 } else if {
     is_kdf_primitive(component)
+    matches_crypto_identifier(get_component_algorithm_family_or_empty(component), NIST_SP800_56_KDF_FAMILIES)
+} else if {
+    is_kdf_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "sp80056")
+    matches_crypto_identifier(name, NIST_SP800_56_KDF_NAMES)
+} else if {
+    is_kdf_primitive(component)
+    regex.match(`^(nist[-_ ]?)?sp800[-_ ]?56[abc]([-_ /][a-z0-9][a-z0-9._/ -]*)?$`, get_component_name_or_empty(component))
 }
 
 
@@ -47,14 +57,32 @@ is_ansi_x963_kdf(component) if {
     oid in ANSI_X963_KDF_OID_VALUES
 } else if {
     is_kdf_primitive(component)
-    family := get_component_algorithm_family_or_empty(component)
-    some known_family in ANSI_X963_KDF_FAMILIES
-    family == lower(known_family)
+    matches_crypto_identifier(get_component_algorithm_family_or_empty(component), ANSI_X963_KDF_FAMILIES)
 } else if {
     is_kdf_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "ansi")
+    matches_ansi_x963_kdf_name(name)
+}
+
+matches_ansi_x963_kdf_name(name) if {
+    matches_crypto_identifier(name, ANSI_X963_KDF_NAMES)
+} else if {
+    regex.match(`^(ansi[-_ ]?)?(kdf[-_ ]?)?x9[._]?63([-_ ]?kdf)?([-_ /][a-z0-9][a-z0-9._/ -]*)?$`, lower(name))
+}
+
+has_unsupported_ansi_kdf_name(component) if {
+    name := get_component_name_or_empty(component)
+    regex.match(`ansi|x9`, normalize_crypto_identifier(name))
+    not matches_ansi_x963_kdf_name(name)
+    not matches_crypto_identifier(name, ANSI_X963_KDF_FAMILIES)
+}
+
+is_agreed_ansi_x963_kdf(component) if {
+    is_kdf_primitive(component)
+    get_component_oid_or_empty(component) in ANSI_X963_KDF_OID_VALUES
+} else if {
+    is_ansi_x963_kdf(component)
+    not has_unsupported_ansi_kdf_name(component)
 }
 
 is_pbkdf2_scheme(component) if {
@@ -69,8 +97,10 @@ is_pbkdf2_scheme(component) if {
 } else if {
     is_kdf_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "pbkdf2")
+    matches_crypto_identifier(name, PBKDF2_KDF_NAMES)
+} else if {
+    is_kdf_primitive(component)
+    regex.match(`^(pkcs5[-_ ])?pbkdf2([-_ /][a-z0-9][a-z0-9._/ -]*)?$`, get_component_name_or_empty(component))
 }
 
 is_hkdf_scheme(component) if {
@@ -85,8 +115,10 @@ is_hkdf_scheme(component) if {
 } else if {
     is_kdf_primitive(component)
     name := get_component_name_or_empty(component)
-    normalized_name := normalize_crypto_identifier(name)
-    contains(normalized_name, "hkdf")
+    matches_crypto_identifier(name, HKDF_KDF_NAMES)
+} else if {
+    is_kdf_primitive(component)
+    regex.match(`^hkdf([-_ /][a-z0-9][a-z0-9._/ -]*)?$`, get_component_name_or_empty(component))
 }
 
 is_agreed_kdf_scheme(component) if {
@@ -94,7 +126,7 @@ is_agreed_kdf_scheme(component) if {
 } else if {
     is_pbkdf2_scheme(component)
 } else if {
-    is_ansi_x963_kdf(component)
+    is_agreed_ansi_x963_kdf(component)
 } else if {
     is_nist_sp800_scheme(component)
 }
@@ -132,9 +164,10 @@ get_kdf_underlying_hash_name_or_empty(component) := hash_name if {
     some hash_name in names
 
 } else := hash_name if {
-    # Fallback: infer from KDF name
+    is_agreed_kdf_scheme(component)
     name := get_component_name_or_empty(component)
-    normalized := normalize_crypto_identifier(name)
+    hash_matches := regex.find_all_string_submatch_n(`(sha[-_ ]?512[-_/]?(224|256)|sha[-_ ]?(1|224|256|384|512)|sha3[-_ ]?(256|384|512))([-_ ][0-9]+){0,2}$`, name, 1)
+    normalized := normalize_crypto_identifier(hash_matches[0][1])
 
     hashes := {
         "SHA-1": "sha1",
@@ -149,20 +182,8 @@ get_kdf_underlying_hash_name_or_empty(component) := hash_name if {
         "SHA3-512": "sha3512"
     }
 
-    matches := {candidate |
-        some candidate, identifier in hashes
-        contains(normalized, identifier)
-    }
-
-    lengths := {length |
-        some candidate in matches
-        length := count(hashes[candidate])
-    }
-
-    longest := max(lengths)
-
-    some hash_name in matches
-    count(hashes[hash_name]) == longest
+    some hash_name, identifier in hashes
+    normalized == identifier
 
 } else := ""
 

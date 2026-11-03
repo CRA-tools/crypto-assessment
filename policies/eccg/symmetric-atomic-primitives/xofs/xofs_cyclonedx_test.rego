@@ -10,6 +10,15 @@ import data.cbom.eccg.symmetric_atomic_primitives.xofs.xofs.findings
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("SHAKE128 with output suffix", [test_helpers.algorithm("SHAKE128-256", "xof", {"parameterSetIdentifier": "256"})], []),
+	test_helpers.case("SHAKE256 with output suffix", [test_helpers.algorithm("SHAKE256-512", "xof", {"parameterSetIdentifier": "512"})], []),
+	test_helpers.case("cSHAKE128 with output suffix", [test_helpers.algorithm("cSHAKE128-256", "xof", {"parameterSetIdentifier": "256"})], []),
+	test_helpers.case("cSHAKE256 with output suffix", [test_helpers.algorithm("cSHAKE256-512", "xof", {"parameterSetIdentifier": "512"})], []),
+	test_helpers.case("SHA3 family with SHAKE output suffix", [test_helpers.algorithm("SHAKE128-256", "xof", {"algorithmFamily": "SHA-3", "parameterSetIdentifier": "256"})], []),
+	test_helpers.case("XOF output advice remains independent of recognition", [test_helpers.algorithm("SHAKE128-128", "xof", {"parameterSetIdentifier": "128"})], [{"ruleId": "ECCG-XOF-002", "severity": "medium", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("cSHAKE variant must end before parameters", [test_helpers.algorithm("cSHAKE2560-512", "xof", {"parameterSetIdentifier": "512"})], [{"ruleId": "ECCG-XOF-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("SHA-3 family does not turn TupleHashXOF into SHAKE", [test_helpers.algorithm("TupleHashXOF256", "xof", {"algorithmFamily": "SHA-3"})], [{"ruleId": "ECCG-XOF-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("custom SHAKE composite", [test_helpers.algorithm("custom-SHAKE256", "xof", {"parameterSetIdentifier": "256"})], [{"ruleId": "ECCG-XOF-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	# The number in the XOF name identifies the construction; output size is supplied
 	# separately in parameterSetIdentifier.
 	test_helpers.case("agreed SHAKE128", [test_helpers.algorithm("SHAKE128", "xof", {"parameterSetIdentifier": "256"})], []),

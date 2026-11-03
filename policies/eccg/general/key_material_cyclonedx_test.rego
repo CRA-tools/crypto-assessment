@@ -12,6 +12,7 @@ import data.cbom.eccg.general.key_detection.findings
 # expected array means no findings from this section. Other sections are assessed
 # separately.
 cases := [
+	test_helpers.case("algorithm name does not imply private key material", [test_helpers.algorithm("RSA-private-key", "pke", {})], []),
 	# Private keys require a high-severity review; public keys produce an informational
 	# finding. These are material assets, not algorithm declarations.
 	test_helpers.case("private key review", [{"type": "cryptographic-asset", "bom-ref": "algorithm-under-test", "name": "private-key", "cryptoProperties": {"assetType": "related-crypto-material", "relatedCryptoMaterialProperties": {"type": "private-key", "size": 2048}}}], [{"ruleId": "ECCG-RSA-KEY-001", "severity": "high", "bomRef": "algorithm-under-test", "materialType": "private-key", "size": 2048}]),
