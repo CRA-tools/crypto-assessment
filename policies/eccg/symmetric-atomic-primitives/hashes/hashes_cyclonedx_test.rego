@@ -28,6 +28,7 @@ cases := [
 	test_helpers.case("output threshold 'unknown'", [test_helpers.algorithm("SHA-384", "hash", {"parameterSetIdentifier": "unknown"})], [{"ruleId": "ECCG-HASH-002", "severity": "medium", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("known hash OID", [test_helpers.with_oid(test_helpers.algorithm("opaque", "hash", {"parameterSetIdentifier": "384"}), "2.16.840.1.101.3.4.2.2")], []),
 	test_helpers.case("unagreed MD5", [test_helpers.algorithm("MD5", "hash", {"algorithmFamily": "MD5"})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
+	test_helpers.case("unagreed SHA-512/224", [test_helpers.algorithm("SHA-512/224", "hash", {"parameterSetIdentifier": "256"})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("unidentified hash", [test_helpers.algorithm("unidentified", "hash", {})], [{"ruleId": "ECCG-HASH-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	# The registry family describes several hashes and cannot select a concrete agreed
 	# function by itself.
