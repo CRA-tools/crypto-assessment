@@ -1,51 +1,26 @@
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 
-def fire_eccg_rsa_002_legacy_rsa_2048():
-    """
-    Should fire ECCG-RSA-002.
-
-    The REGO rule flags RSA primitives with:
-
-      1900 <= modulusBits < 3000
-
-    A 2048-bit RSA key falls in that legacy range.
-    """
-
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-    )
-
-    public_key = private_key.public_key()
-
-    return private_key, public_key
-
-def fire_eccg_rsa_002_legacy_rsa_1024():
-    """
-    Should fire ECCG-RSA-002.
-
-    The REGO rule flags RSA primitives with:
-
-      1900 <= modulusBits < 3000
-
-    A 1024-bit RSA key falls in that legacy range.
-    """
-
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=1024,
-    )
-
-    public_key = private_key.public_key()
-
-    return private_key, public_key
+# Should fire ECCG-RSA-001: 1024 bits is below the 3000-bit minimum.
+def rsa_1024_example() -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=1024)
+    message = b"undersized RSA example"
+    signature = private_key.sign(message, padding.PKCS1v15(), hashes.SHA256())
+    private_key.public_key().verify(signature, message, padding.PKCS1v15(), hashes.SHA256())
 
 
-if __name__ == "__main__":
-    private_key, public_key = fire_eccg_rsa_002_legacy_rsa_2048()
+# Should fire ECCG-RSA-001: 2048 bits is below the 3000-bit minimum.
+def rsa_2048_example() -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    message = b"undersized RSA example"
+    signature = private_key.sign(message, padding.PKCS1v15(), hashes.SHA384())
+    private_key.public_key().verify(signature, message, padding.PKCS1v15(), hashes.SHA384())
 
-    numbers = public_key.public_numbers()
 
-    print("RSA modulus bit length:", numbers.n.bit_length())
-    print("RSA public exponent:", numbers.e)
+# Should not fire ECCG-RSA-001: 3072 bits meets the modulus minimum.
+def rsa_3072_example() -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=3072)
+    message = b"RSA example meeting the modulus minimum"
+    signature = private_key.sign(message, padding.PKCS1v15(), hashes.SHA512())
+    private_key.public_key().verify(signature, message, padding.PKCS1v15(), hashes.SHA512())
