@@ -23,6 +23,7 @@ cases := [
 	test_helpers.case("unverifiable modulus '0'", [test_helpers.algorithm("RSA", "pke", {"parameterSetIdentifier": "0"})], []),
 	test_helpers.case("unverifiable modulus '-1'", [test_helpers.algorithm("RSA", "pke", {"parameterSetIdentifier": "-1"})], []),
 	test_helpers.case("unverifiable modulus '2999.5'", [test_helpers.algorithm("RSA", "pke", {"parameterSetIdentifier": "2999.5"})], []),
+	test_helpers.case("unverifiable modulus '1900'", [test_helpers.algorithm("RSA", "pke", {"parameterSetIdentifier": "1900"})], [{"ruleId": "ECCG-RSA-001", "severity": "critical", "bomRef": "algorithm-under-test"}]),
 	test_helpers.case("missing modulus", [test_helpers.algorithm("RSA", "pke", {})], []),
 	# Primitive recognition must work for opaque names when a registered RSA OID or
 	# signature family supplies the evidence.
