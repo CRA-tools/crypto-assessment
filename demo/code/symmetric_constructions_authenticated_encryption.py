@@ -1,5 +1,6 @@
 from cryptography.hazmat.primitives import hashes, hmac, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.ciphers.aead import AESCCM, AESGCM, ChaCha20Poly1305
 
 
 AES_KEY = b"A" * 16      # AES-128
@@ -7,17 +8,20 @@ HMAC_KEY = b"H" * 32     # HMAC key
 IV = b"I" * 16           # CBC IV, fixed here only for deterministic test code
 
 
+# Padding helper for the CBC/MAC composition snippets below.
 def pkcs7_pad(data: bytes) -> bytes:
     padder = padding.PKCS7(128).padder()
     return padder.update(data) + padder.finalize()
 
 
+# Should fire ECCG-MAC-002 and ECCG-HMAC-001 advisories.
 def hmac_sha256(data: bytes) -> bytes:
     mac = hmac.HMAC(HMAC_KEY, hashes.SHA256())
     mac.update(data)
     return mac.finalize()
 
 
+# Should fire ECCG-SYM-ENC-003; the fixed IV is deliberately unsuitable for repeated use.
 def aes_cbc_encrypt(data: bytes) -> bytes:
     cipher = Cipher(
         algorithms.AES(AES_KEY),
@@ -30,19 +34,8 @@ def aes_cbc_encrypt(data: bytes) -> bytes:
     return encryptor.update(padded) + encryptor.finalize()
 
 
-def fire_legacy_mac_then_encrypt():
-    """
-    Legacy AE scheme: MAC-then-Encrypt.
-
-    Construction:
-      1. Compute MAC over plaintext.
-      2. Append MAC to plaintext.
-      3. Encrypt plaintext || MAC.
-
-    This corresponds to:
-      MAC-then-Encrypt [BN00] L[2025]
-    """
-
+# May fire ECCG-MAC-001 (warning) if encryption/MAC occurrences are within 15 lines.
+def mac_then_encrypt():
     plaintext = b"message protected with MAC-then-Encrypt"
 
     tag = hmac_sha256(plaintext)
@@ -53,19 +46,8 @@ def fire_legacy_mac_then_encrypt():
     return ciphertext
 
 
-def fire_legacy_encrypt_and_mac():
-    """
-    Legacy AE scheme: Encrypt-and-MAC.
-
-    Construction:
-      1. Encrypt plaintext.
-      2. Compute MAC over plaintext separately.
-      3. Output ciphertext and tag.
-
-    This corresponds to:
-      Encrypt-and-MAC [BN00] L[2025]
-    """
-
+# May fire ECCG-MAC-001 (warning); source proximity cannot prove the composition order.
+def encrypt_and_mac():
     plaintext = b"message protected with Encrypt-and-MAC"
 
     ciphertext = aes_cbc_encrypt(plaintext)
@@ -74,10 +56,26 @@ def fire_legacy_encrypt_and_mac():
     return ciphertext, tag
 
 
-if __name__ == "__main__":
-    mac_then_encrypt_ct = fire_legacy_mac_then_encrypt()
-    encrypt_and_mac_ct, encrypt_and_mac_tag = fire_legacy_encrypt_and_mac()
+# GCM/CCM should fire ECCG-SEAS-002; ChaCha20-Poly1305 should fire ECCG-SEAS-001.
+def authenticated_encryption_examples() -> None:
+    import os
 
-    print("MAC-then-Encrypt ciphertext:", mac_then_encrypt_ct.hex())
-    print("Encrypt-and-MAC ciphertext:", encrypt_and_mac_ct.hex())
-    print("Encrypt-and-MAC tag:", encrypt_and_mac_tag.hex())
+    plaintext = b"example authenticated encryption"
+    associated_data = b"example header"
+    gcm_key = AESGCM.generate_key(bit_length=256)
+    gcm = AESGCM(gcm_key)
+    gcm_nonce = os.urandom(12)
+    gcm_ciphertext = gcm.encrypt(gcm_nonce, plaintext, associated_data)
+    gcm_plaintext = gcm.decrypt(gcm_nonce, gcm_ciphertext, associated_data)
+
+    ccm_key = AESCCM.generate_key(bit_length=256)
+    ccm = AESCCM(ccm_key, tag_length=16)
+    ccm_nonce = os.urandom(13)
+    ccm_ciphertext = ccm.encrypt(ccm_nonce, plaintext, associated_data)
+    ccm_plaintext = ccm.decrypt(ccm_nonce, ccm_ciphertext, associated_data)
+
+    chacha_key = ChaCha20Poly1305.generate_key()
+    chacha = ChaCha20Poly1305(chacha_key)
+    chacha_nonce = os.urandom(12)
+    chacha_ciphertext = chacha.encrypt(chacha_nonce, plaintext, associated_data)
+    chacha_plaintext = chacha.decrypt(chacha_nonce, chacha_ciphertext, associated_data)
