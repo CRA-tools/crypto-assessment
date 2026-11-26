@@ -1,6 +1,6 @@
 package cbom.eccg
 
-default compliant := true
+default compliant := false
 
 compliant if count(findings) == 0
 
@@ -23,22 +23,27 @@ policy_sources := [
     {
         "section": "Symmetric Atomic Primitives",
         "subsection": "Block Ciphers",
-        "findings": data.cbom.eccg.symmetric_atomic_primitives.block_ciphers.findings
+        "findings": data.cbom.eccg.symmetric_atomic_primitives.block_ciphers.block_ciphers.findings
     },
     {
         "section": "Symmetric Atomic Primitives",
         "subsection": "Hash Primitives",
-        "findings": data.cbom.eccg.symmetric_atomic_primitives.hash_primitives.findings
+        "findings": data.cbom.eccg.symmetric_atomic_primitives.hashes.hash_primitives.findings
+    },
+    {
+        "section": "Symmetric Atomic Primitives",
+        "subsection": "XOFs",
+        "findings": data.cbom.eccg.symmetric_atomic_primitives.xofs.xofs.findings
     },
     {
         "section": "Symmetric Constructions",
         "subsection": "AES Modes",
-        "findings": data.cbom.eccg.symmetric_constructions.aes_modes.findings
+        "findings": data.cbom.eccg.symmetric_constructions.symmetric_encryption_schemes.aes_modes.findings
     },
     {
         "section": "Symmetric Constructions",
         "subsection": "Authenticated Encryption",
-        "findings": data.cbom.eccg.symmetric_constructions.authenticated_encryption.findings
+        "findings": data.cbom.eccg.symmetric_constructions.symmetric_authenticated_disk_encryption.authenticated_encryption.findings
     },
     {
         "section": "Symmetric Constructions",
@@ -73,7 +78,7 @@ policy_sources := [
     {
         "section": "Asymmetric Constructions",
         "subsection": "Asymmetric Encryption Schemes",
-        "findings": data.cbom.eccg.asymmetric_constructions.asymmetric_encryption.findings
+        "findings": data.cbom.eccg.asymmetric_constructions.asymmetric_encryption_schemes.findings
     },
     {
         "section": "Asymmetric Constructions",
@@ -83,7 +88,7 @@ policy_sources := [
     {
         "section": "Asymmetric Constructions",
         "subsection": "Digital Signature Schemes",
-        "findings": data.cbom.eccg.asymmetric_constructions.digital_signature.findings
+        "findings": data.cbom.eccg.asymmetric_constructions.digital_signatures.findings
     },
     {
         "section": "Asymmetric Atomic Primitives",
@@ -99,6 +104,11 @@ policy_sources := [
         "section": "Asymmetric Atomic Primitives",
         "subsection": "FF DLOG",
         "findings": data.cbom.eccg.asymmetric_atomic_primitives.ff_dlog.findings
+    },
+    {
+        "section": "Random Number Generation",
+        "subsection": "Deterministic Random Bit Generator",
+        "findings": data.cbom.eccg.random_number_generation.deterministic_random_bit_generator.findings
     },
     #{
     #    "section": "General",

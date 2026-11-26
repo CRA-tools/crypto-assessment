@@ -43,38 +43,21 @@ WQIDAQAB
 -----END PUBLIC KEY-----"""
 
 
+# Should fire ECCG-RSA-KEY-001 when private material is detected; that section is disabled in main.
 def load_hardcoded_private_key():
-    """
-    Loads a hardcoded RSA-2048 private key from source code.
-    This is intentionally insecure and should only be used for CBOMkit testing.
-    """
-
     return serialization.load_pem_private_key(
         PRIVATE_KEY_PEM,
         password=None,
     )
 
 
+# Should fire ECCG-RSA-KEY-002 when public material is detected; that section is disabled in main.
 def load_hardcoded_public_key():
-    """
-    Loads a hardcoded RSA-2048 public key from source code.
-    """
-
     return serialization.load_pem_public_key(PUBLIC_KEY_PEM)
 
 
-def fire_eccg_rsa_002_with_hardcoded_public_key():
-    """
-    Performs RSA-OAEP encryption using the hardcoded RSA-2048 public key.
-
-    Expected rule:
-      ECCG-RSA-002
-
-    Expected reason:
-      RSA modulus is 2048 bits, which is within:
-        1900 <= n < 3000
-    """
-
+# Should fire ECCG-RSA-001 if the 2048-bit modulus is extracted, plus OAEP advisories.
+def hardcoded_rsa_oaep_encryption():
     public_key = load_hardcoded_public_key()
 
     ciphertext = public_key.encrypt(
@@ -89,13 +72,8 @@ def fire_eccg_rsa_002_with_hardcoded_public_key():
     return ciphertext
 
 
-def fire_eccg_rsa_002_with_hardcoded_private_key():
-    """
-    Performs RSA-PSS signing using the hardcoded RSA-2048 private key.
-
-    This gives CBOMkit another RSA usage site to detect.
-    """
-
+# Should fire ECCG-RSA-001 if the 2048-bit modulus is extracted; PSS should not fire ECCG-DG-001.
+def hardcoded_rsa_pss_signature():
     private_key = load_hardcoded_private_key()
 
     signature = private_key.sign(
@@ -114,15 +92,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes
 
 
-def fire_eccg_rsa_002_generate_2048_and_use():
-    """
-    Should fire ECCG-RSA-002 if CBOMkit extracts RSA with parameterSetIdentifier=2048.
-
-    ECCG-RSA-002 condition:
-      is_rsa_primitive(component)
-      1900 <= n < 3000
-    """
-
+# Should fire ECCG-RSA-001 for 2048-bit RSA, plus ECCG-AS-ENC-002/004/005 for OAEP.
+def rsa_2048_encryption_and_signature():
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -149,24 +120,3 @@ def fire_eccg_rsa_002_generate_2048_and_use():
     )
 
     return ciphertext, signature
-
-
-
-if __name__ == "__main__":
-    private_key = load_hardcoded_private_key()
-    public_key = load_hardcoded_public_key()
-
-    public_numbers = public_key.public_numbers()
-
-    ciphertext = fire_eccg_rsa_002_with_hardcoded_public_key()
-    signature = fire_eccg_rsa_002_with_hardcoded_private_key()
-
-    print("RSA modulus bit length:", public_numbers.n.bit_length())
-    print("RSA public exponent:", public_numbers.e)
-    print("RSA-OAEP ciphertext length:", len(ciphertext))
-    print("RSA-PSS signature length:", len(signature))
-
-    ciphertext, signature = fire_eccg_rsa_002_generate_2048_and_use()
-
-    print("RSA-2048 ciphertext length:", len(ciphertext))
-    print("RSA-2048 signature length:", len(signature))

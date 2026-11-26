@@ -1,15 +1,8 @@
 from cryptography.hazmat.primitives import hashes, hmac
 
 
-def fire_eccg_hash_001_sha224_via_hmac():
-    """
-    Target: ECCG-HASH-001
-
-    Uses SHA224 through pyca/cryptography HMAC.
-    CBOMkit may be more likely to emit the underlying hash primitive
-    when the hash is used inside HMAC rather than as a bare digest.
-    """
-
+# Should fire ECCG-HASH-001: SHA-224 is not an agreed hash.
+def sha224_hmac():
     mac = hmac.HMAC(
         key=b"K" * 32,
         algorithm=hashes.SHA224(),
@@ -19,13 +12,8 @@ def fire_eccg_hash_001_sha224_via_hmac():
     return mac.finalize()
 
 
-def fire_eccg_hash_002_sha512_224_via_hmac():
-    """
-    Target: ECCG-HASH-002
-
-    Uses SHA512/224 through pyca/cryptography HMAC.
-    """
-
+# Should fire ECCG-HASH-001: SHA-512/224 is not an agreed hash.
+def sha512_224_hmac():
     mac = hmac.HMAC(
         key=b"K" * 32,
         algorithm=hashes.SHA512_224(),
@@ -35,15 +23,8 @@ def fire_eccg_hash_002_sha512_224_via_hmac():
     return mac.finalize()
 
 
-def fire_eccg_hash_003_non_agreed_hash():
-    """
-    Target: ECCG-HASH-003
-
-    Blake a hash primitive exposed by pyca/cryptography.
-    It should not be in the agreed ECCG hash list, and it is less likely
-    than MD5/SHA1 to be classified as a legacy hash by helper.
-    """
-
+# Should fire ECCG-HASH-001 if BLAKE2b is detected as a hash primitive.
+def blake2b_digest():
     # External / non-ECCG hash (should likely be flagged by policy)
     blake2b_obj = hashes.Hash(hashes.BLAKE2b(64))
     blake2b_obj.update(b"data")
@@ -52,11 +33,15 @@ def fire_eccg_hash_003_non_agreed_hash():
     return digest_blake2b
 
 
-if __name__ == "__main__":
-    sha224_mac = fire_eccg_hash_001_sha224_via_hmac()
-    sha512_224_mac = fire_eccg_hash_002_sha512_224_via_hmac()
-    digest_blake2b = fire_eccg_hash_003_non_agreed_hash()
+# Should fire ECCG-HASH-002: SHA-256 is agreed but below the 384-bit threshold.
+def sha256_digest() -> bytes:
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"example message")
+    return digest.finalize()
 
-    print("HMAC-SHA224:", sha224_mac.hex())
-    print("HMAC-SHA512_224:", sha512_224_mac.hex())
-    print("Blake2B:", digest_blake2b.hex())
+
+# Should not fire ECCG-HASH-001/002: SHA-384 is agreed and meets the threshold.
+def sha384_digest() -> bytes:
+    digest = hashes.Hash(hashes.SHA384())
+    digest.update(b"example message")
+    return digest.finalize()

@@ -1,20 +1,9 @@
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.decrepit.ciphers import modes as legacy_modes
 
 
-def fire_eccg_sym_enc_001_aes_ecb():
-    """
-    Should fire ECCG-SYM-ENC-001.
-
-    AES-ECB is a symmetric encryption scheme, but ECB is not in the agreed
-    scheme list used by the REGO rule:
-
-      CTR, OFB, CBC, CBC-CS, CFB
-
-    Therefore:
-      is_symmetric_encryption_scheme(component)
-      not is_agreed_symmetric_encryption_scheme(component)
-    """
-
+# Should fire ECCG-SYM-ENC-001: ECB is not an agreed encryption mode.
+def aes_ecb_encryption():
     key = b"K" * 16  # AES-128 key
 
     cipher = Cipher(
@@ -32,6 +21,20 @@ def fire_eccg_sym_enc_001_aes_ecb():
     return ciphertext
 
 
-if __name__ == "__main__":
-    ciphertext = fire_eccg_sym_enc_001_aes_ecb()
-    print("AES-ECB ciphertext:", ciphertext.hex())
+# Should fire ECCG-SYM-ENC-002/003 advisories; these modes should not fire ECCG-SYM-ENC-001.
+def agreed_mode_examples() -> None:
+    import os
+
+    key = os.urandom(32)
+    plaintext = b"A" * 32
+    ciphers = [
+        Cipher(algorithms.AES(key), modes.CTR(os.urandom(16))),
+        Cipher(algorithms.AES(key), modes.CBC(os.urandom(16))),
+        Cipher(algorithms.AES(key), legacy_modes.CFB(os.urandom(16))),
+        Cipher(algorithms.AES(key), legacy_modes.OFB(os.urandom(16))),
+    ]
+    for cipher in ciphers:
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(plaintext) + encryptor.finalize()
+        decryptor = cipher.decryptor()
+        recovered_plaintext = decryptor.update(ciphertext) + decryptor.finalize()

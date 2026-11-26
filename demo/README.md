@@ -1,368 +1,151 @@
-# Demo code for test assessments
-
-**Use the sample code in [`demo/code`](code) to run a test assessment or get
-familiar with the CRACY Cryptographic Assessment Tool.** The examples let you
-try the scanning workflow, inspect the generated CBOM, and explore policy and
-source-code findings before assessing your own project.
-
-To try it, enter `https://github.com/CRA-tools/crypto-assessment.git` as the
-repository URL in the frontend, set **Scan path** to `demo/code`, and press
-**Check compliance**. Review the result, then select **Show findings** to
-explore the details. See the [main usage guide](../README.md#usage) for the
-full workflow.
-
-The sections below explain example findings and their severities to help you
-understand the assessment results.
-
-# Severities 
-
-- `critical`: Serious issue that should be prioritized immediately; usually indicates obsolete, non-agreed, or strongly non-compliant cryptographic usage.
-- `high`: Important issue that should be fixed or reviewed soon; often indicates legacy or risky cryptographic usage in the near future.
-- `medium`: Moderate issue that may be acceptable in some contexts but requires review, especially for sensitive or quantum-sensitive use cases.
-- `low`: Minor issue or weak signal that should be reviewed but is not usually urgent.
-- `warning`: Informational policy warning where the usage may be context-dependent or requires manual review.
-- `info`: Non-violating or explanatory finding, often used to report detected recommended mechanisms or limitations of the evaluation.
-
-# Symmetric Atomic Primitives 
-
-## ECCG-BLOCK-001: Non-Agreed Block Cipher
-
-**Severity: Critical**
-
-ECCG-BLOCK-001 detects block cipher primitives that are not in the agreed ECCG block cipher list. The agreed list currently includes AES and 3DES. Any detected block cipher outside that list is reported as non-compliant.
-
-For example, the following pyca/cryptography code can produce a CBOM entry for Blowfish:
-
-```python
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-key = b"K" * 16
-iv = b"I" * 8
-
-cipher = Cipher(
-    algorithms.Blowfish(key),
-    modes.CBC(iv),
-)
-```
-
-## ECCG-BLOCK-003: Non-Agreed 3DES Key Size
-
-**Severity: high**
-
-ECCG-BLOCK-003 detects 3DES components whose detected key size does not match the expected ECCG value:
-
-```
-requiredKeyBits = 168
-```
-
-For example, the following pyca/cryptography code can produce a 3DES CBOM entry:
-
-```python
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-key = b"1234567890ABCDEF"
-iv = b"12345678"
-
-cipher = Cipher(
-    algorithms.TripleDES(key),
-    modes.CBC(iv),
-)
-```
-
-3DES uses a non-agreed key size: 64 bits. Required size is 168 bits
-
-In practice, this rule is sensitive to how CBOMkit populates parameterSetIdentifier. For block ciphers, the value may reflect the block size, mode parameter, or another algorithm identifier rather than the actual key size. In the example finding, 3DES is reported with 64 bits, which likely reflects the 64-bit block size rather than the effective 3DES keying material. Because of that, key-size findings for block ciphers should be treated as useful signals but not always definitive. Manual review may be required to confirm the actual key length used in source code.
-
-## ECCG-BLOCK-004: 3DES Legacy and Small Block Size Warning
-
-**Severity: high**
-
-ECCG-BLOCK-004 detects any use of 3DES. Even if the detected 3DES component appears to use the expected key size, the rule still reports it because 3DES is legacy-bound and has structural limitations that make it unsuitable for new use.
-
-The rule is triggered whenever a CBOM component is identified as 3DES:
-
-```rego
-is_3des_component(component)
-```
-
-For example, the following pyca/cryptography code can produce a CBOM entry for 3DES:
-
-```py
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-key = b"1234567890ABCDEF"
-iv = b"12345678"
-
-cipher = Cipher(
-    algorithms.TripleDES(key),
-    modes.CBC(iv),
-)
-```
-
-The rule attaches ECCG notes related to:
-
-```
-2-SmallBlockSize
-3-QuantumThreat
-```
-
-The small-block-size note is important because 3DES has a 64-bit block size. This creates practical limits for the safe amount of data that can be encrypted under the same key, especially compared with modern 128-bit block ciphers such as AES.
-
-The quantum-threat note is included because 3DES does not meet the preferred security margin for quantum-sensitive contexts. As a result, the rule reports 3DES as a high-severity finding even when other 3DES-specific checks, such as key-size checks, may also fire.
-
-## ECCG-BLOCK-005: Block Cipher Below 192 Bits in Quantum-Sensitive Contexts
-
-**Severity: medium** 
-
-ECCG-BLOCK-005 detects agreed block cipher components whose detected key size is below the ECCG recommendation for quantum-sensitive contexts:
-
-```text
-actualKeyBits < 192
-```
-
-The rule is intended to flag agreed block ciphers that may be acceptable in general contexts but should be avoided when resistance to quantum attacks is required. In practice, this means that AES-128 can be reported because its detected parameter size is below the 192-bit threshold.
-
-For example, the following pyca/cryptography code can produce a CBOM entry for AES-CBC with a detected parameter size of 128 bits:
-
-```py
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-key = b"K" * 16
-iv = b"I" * 16
-
-cipher = Cipher(
-    algorithms.AES(key),
-    modes.CBC(iv),
-)
-```
-
-The same rule may also fire for other AES-128 modes, such as AES-ECB:
-
-```py
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-key = b"K" * 16
-
-cipher = Cipher(
-    algorithms.AES(key),
-    modes.ECB(),
-)
-```
-
-However, detecting key sizes through the CBOM is not guaranteed to be reliable. The parameterSetIdentifier field may represent the key size for some algorithms, such as AES-128, but it may represent a different parameter for others. For example, some block cipher entries may expose a block size, mode-related value, or algorithm identifier rather than the actual secret key length.
-
-## ECCG-HASH-001: SHA-224 Legacy Hash Function
-
-**Severity: critical**
-
-ECCG-HASH-001 detects use of SHA-224 as a hash primitive. Under this rule set, SHA-224 is treated as legacy-only and is not included in the agreed hash function list.
-
-The rule is triggered when a CBOM component is identified as both:
-
-```rego
-is_hash_primitive(component)
-is_sha224(component)
-```
-
-For example, the following pyca/cryptography code can produce a CBOM entry for SHA-224:
-
-```py
-from cryptography.hazmat.primitives import hashes, hmac
-
-mac = hmac.HMAC(
-    key=b"K" * 32,
-    algorithm=hashes.SHA224(),
-)
-
-mac.update(b"message using SHA-224")
-tag = mac.finalize()
-```
-
-This rule is marked as critical because SHA-224 is classified as legacy-only in the policy and should not be used as an agreed hash function.
-
-## ECCG-HASH-002: SHA-512/224 Legacy Hash Function
-
-**Severity: critical**
-
-ECCG-HASH-002 detects use of SHA-512/224 as a hash primitive. Under this rule set, SHA-512/224 is also treated as legacy-only and is not included in the agreed hash function list.
-
-The rule is triggered when a CBOM component is identified as both:
-
-```
-is_hash_primitive(component)
-is_sha512_224(component)
-```
-
-For example, the following pyca/cryptography code can produce a CBOM entry for SHA-512/224:
-
-```py
-from cryptography.hazmat.primitives import hashes, hmac
-
-mac = hmac.HMAC(
-    key=b"K" * 32,
-    algorithm=hashes.SHA512_224(),
-)
-
-mac.update(b"message using SHA-512/224")
-tag = mac.finalize()
-```
-
-This rule is marked as critical because SHA-512/224 is classified as legacy-only in the policy and should not be used as an agreed hash function.
-
-## ECCG-HASH-005: Obsolete SHA-1 Hash Function
-
-**Severity: critical**
-
-ECCG-HASH-005 detects use of SHA-1 as a hash primitive. Under this policy set, SHA-1 is treated as obsolete and is not included in the agreed hash function list.
-
-The rule is triggered when a CBOM component is identified as both:
-
-```rego
-is_hash_primitive(component)
-is_sha1(component)
-```
-
-For example, the following pyca/cryptography code can produce a CBOM entry for SHA-1:
-
-```py
-from cryptography.hazmat.primitives import hashes
-
-digest = hashes.Hash(hashes.SHA1())
-digest.update(b"message using SHA-1")
-result = digest.finalize()
-```
-
-SHA-1 should not be used for new cryptographic designs. If SHA-1 appears as a standalone hash primitive, it should be replaced with an agreed hash function such as SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384, or SHA3-512, depending on the security requirements.
-
-If SHA-1 appears as the underlying hash for HMAC-SHA1, the HMAC construction may also produce a separate MAC-related finding. In that case, the SHA-1 finding identifies the obsolete underlying hash primitive, while the HMAC finding identifies the legacy MAC construction.
-
-# Symmetric Constructions 
-
-## ECCG-SYM-ENC-001: Non-Agreed Symmetric Encryption Scheme
-
-**Severity: Critical**
-
-ECCG-SYM-ENC-001 detects symmetric encryption schemes that are not in the agreed ECCG symmetric encryption scheme list. The agreed list currently includes:
-
-```text
-CTR
-OFB
-CBC
-CBC-CS
-CFB
-```
-
-Any detected symmetric encryption scheme outside that list is reported as non-compliant. For example, AES-ECB is detected as a symmetric encryption scheme, but ECB is not included in the agreed scheme list.
-
-For example, the following pyca/cryptography code can produce a CBOM entry for AES-ECB:
-
-```py
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-key = b"K" * 16
-
-cipher = Cipher(
-    algorithms.AES(key),
-    modes.ECB(),
-)
-```
-
-## ECCG-HMAC-002: Legacy HMAC-SHA1
-
-**Severity: high and critical after 2030**
-
-ECCG-HMAC-002 detects HMAC-SHA1. Under this policy set, HMAC-SHA1 is considered acceptable only as a legacy mechanism and should be phased out.
-
-The rule is triggered when a CBOM component is identified as a MAC primitive using HMAC with SHA-1.
-
-For example, the following pyca/cryptography code can produce a CBOM entry for HMAC-SHA1:
-
-```py
-from cryptography.hazmat.primitives import hashes, hmac
-
-mac = hmac.HMAC(
-    key=b"K" * 32,
-    algorithm=hashes.SHA1(),
-)
-
-mac.update(b"message using HMAC-SHA1")
-tag = mac.finalize()
-```
-
-The rule reports this as a high-severity finding because SHA-1-based HMAC is legacy-bound in the implemented policy. Although HMAC-SHA1 is not the same as plain SHA-1 hashing, new designs should use stronger HMAC variants such as HMAC-SHA256, HMAC-SHA384, or HMAC-SHA512 where appropriate.
-
-## ECCG-AE-005: Ambiguous Encryption and MAC Composition
-
-**Severity: medium**
-
-ECCG-AE-005 detects cases where a symmetric encryption component and a MAC component appear in a common source context. This may indicate a manually composed authenticated-encryption construction.
-
-The rule is intended to catch code patterns that may correspond to one of the following schemes:
-
-```
-Encrypt-then-MAC
-MAC-then-Encrypt
-Encrypt-and-MAC
-```
-
-Under the ECCG guidance represented by this policy set, Encrypt-then-MAC is treated as agreed, while MAC-then-Encrypt and Encrypt-and-MAC are treated as legacy. However, the CBOM does not expose enough data-flow or ordering information to reliably distinguish these constructions.
-
-For example, the following pyca/cryptography code can produce both an AES-CBC component and an HMAC-SHA256 component in the same source file:
-
-```py
-from cryptography.hazmat.primitives import hashes, hmac, padding
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-aes_key = b"A" * 16
-hmac_key = b"H" * 32
-iv = b"I" * 16
-
-plaintext = b"message"
-
-padder = padding.PKCS7(128).padder()
-padded = padder.update(plaintext) + padder.finalize()
-
-cipher = Cipher(
-    algorithms.AES(aes_key),
-    modes.CBC(iv),
-)
-
-encryptor = cipher.encryptor()
-ciphertext = encryptor.update(padded) + encryptor.finalize()
-
-mac = hmac.HMAC(
-    hmac_key,
-    hashes.SHA256(),
-)
-
-mac.update(ciphertext)
-tag = mac.finalize()
-```
-
-This rule is deliberately heuristic. It can detect that encryption and MAC operations occur together, but it cannot prove whether the MAC is computed over the plaintext or the ciphertext. Because of that, the finding requires manual review.
-
-# Asymmetric Atomic Primitives 
-
-## ECCG-RSA-002: Legacy RSA Modulus Size
-
-**Severity: critical**
-
-ECCG-RSA-002 detects RSA primitives whose modulus size is in the ECCG legacy range:
-
-```
-1900 <= modulusBits < 3000
-```
-
-In practice, this means RSA-2048 is flagged as legacy. RSA security depends heavily on the size of the modulus n. Under this rule set, RSA keys below 3000 bits are treated as legacy. A 2048-bit RSA key is still commonly encountered, but it does not meet the recommended ECCG modulus-size threshold. The rule reports this as a critical finding because the detected RSA primitive is classified as Legacy[2025].
-
-The ECCG rule also includes a condition on the RSA public exponent:
-
-```
-log2(e) > 16
-```
-
-However, CycloneDX does not expose the RSA public exponent in the CBOM data used by this rule. Because of that, the policy can only evaluate the modulus size. The finding therefore marks the exponent check as:
-
-```
-not_verifiable
-```
+# Demo code for CBOMkit assessments
+
+The Python files in [code](code) contain pyca/cryptography snippets for scanning
+with CBOMkit. Each example has a comment identifying the rule it should trigger,
+or should not trigger, when the analyzer supplies the required evidence.
+
+The files contain function definitions rather than a demo runner. CBOMkit scans
+the source; calling the functions or running Python is not required. The snippets
+include agreed algorithms, deliberately non-agreed uses, and an invalid AES
+constructor to exercise different assessment outcomes.
+
+## Scan the examples
+
+1. Open the assessment frontend, normally at `http://localhost:8000`.
+2. Enter `https://github.com/CRA-tools/crypto-assessment.git`, or the URL of a fork
+   containing the examples.
+3. Select the branch containing the changes and set **Scan path** to `demo/code`.
+4. Press **Check compliance**, then **Show findings** to inspect the results and
+   source references.
+
+The repository scan reads the selected remote branch. Local, uncommitted edits
+are not included in that workflow. The optional commit SHA applies to Semgrep;
+CBOMkit scans the selected branch. See the [main usage guide](../README.md#usage).
+
+## Reading the results
+
+The comments describe expected policy behavior, conditional on the generated
+CycloneDX CBOM. Detection depends on the analyzer's support for the API call and
+the primitive, identifiers, parameters, and source occurrences it records.
+A missing finding can mean that the analyzer missed or incompletely described
+an operation. It does not establish that the example passed the policy.
+
+One operation can produce findings in several sections. For example, an ECDSA
+signature can use an agreed signature scheme while its curve produces a separate
+EC-DLOG finding. Agreed schemes can also produce operational advisories.
+
+| Severity | Meaning in these examples |
+| --- | --- |
+| `critical` | A scheme or parameter is rejected, or a rule assigns this severity to legacy use. |
+| `high` | Used by the invalid/missing AES-size rule and private-key material detection. |
+| `medium` | Quantum-sensitive recommendations or ambiguous password/key-protection context. |
+| `low` | Disk-encryption context heuristics that can produce false positives. |
+| `warning` | An implementation requirement, uncertain metadata, or a composition requiring review. |
+| `info` | Public-key material detection. |
+| `error` | The current legacy-status helper's severity after a legacy period expires. |
+
+## Snippets by section
+
+The tables map the current rules to the source examples. They include expected
+non-findings and limitations; they do not claim that every rule can be triggered
+by scanning a supported PyCA API.
+
+### Symmetric atomic primitives
+
+| Section and source | Rules and expected behavior |
+| --- | --- |
+| [Block ciphers](code/symmetric_atomic_primitives_block_ciphers.py) | `ECCG-BLOCK-001`: rejects block ciphers outside the current AES allowlist, including Blowfish, SM4, and 3DES. `ECCG-BLOCK-002`: reports AES sizes outside 128/192/256 bits, including missing size evidence. `ECCG-BLOCK-003`: reports legacy 3DES use. `ECCG-BLOCK-004`: additionally reports a detected 3DES size other than 168 bits. `ECCG-BLOCK-005`: reports agreed ciphers below the 192-bit threshold. |
+| [Hashes](code/symmetric_atomic_primitives_hashes.py) | `ECCG-HASH-001`: rejects non-agreed hashes, including SHA-224, SHA-512/224, and BLAKE2b. `ECCG-HASH-002`: reports agreed hashes below the 384-bit threshold. SHA-256 exercises the latter; correctly identified SHA-384 should trigger neither rule. |
+| [XOFs](code/xofs.py) | `ECCG-XOF-001`: rejects non-agreed XOFs; the supplied SHAKE examples are agreed. `ECCG-XOF-002`: compares the recorded parameter value with 256 bits. The short-output examples exercise that condition only if the analyzer records a value below 256. |
+
+`invalid_aes_key_size()` deliberately passes a 160-bit key. PyCA rejects that
+constructor if the function is called. It is an invalid-usage source example,
+not an executable AES construction with a nonstandard key size.
+
+The 3DES legacy marker is `L[2027]`. The current policies assign
+`ECCG-BLOCK-003` and `ECCG-BLOCK-004` severity `critical` through 2027 and `error`
+afterwards. `ECCG-BLOCK-001` can also report 3DES independently.
+
+### Symmetric constructions
+
+| Section and source | Rules and expected behavior |
+| --- | --- |
+| [AES modes](code/symmetric_constructions_aes_modes.py) | `ECCG-SYM-ENC-001`: rejects ECB and other unagreed constructions. `ECCG-SYM-ENC-002`: requests integrity protection for conditionally agreed modes. `ECCG-SYM-ENC-003`: requests IV/nonce review for those modes. |
+| [GCM and authenticated encryption](code/symmetric_constructions_authenticated_encryption.py) | `ECCG-SYM-ENC-004`, `ECCG-SYM-ENC-005`, and `ECCG-SYM-ENC-006`: GCM IV construction, plaintext-length, and full-tag advisories. `ECCG-SEAS-001`: rejects ChaCha20-Poly1305 under the current AE allowlist. `ECCG-SEAS-002`: requests challenge/nonce review for agreed GCM/CCM. |
+| [MACs](code/symmetric_constructions_mac_block_ciphers.py) | `ECCG-MAC-001`: rejects a non-agreed MAC such as Poly1305 if classified as `mac`; it also emits a separate warning for nearby encryption/MAC occurrences. `ECCG-MAC-002`: requests tag-truncation review. `ECCG-HMAC-001`: supplies the HMAC/KMAC quantum-security advisory. |
+| [CBC-MAC and GMAC](code/symmetric_constructions_mac_block_ciphers.py) | `ECCG-CBC-MAC-001`: fixed-input-length advisory. `ECCG-GMAC-001`, `ECCG-GMAC-002`, and `ECCG-GMAC-003`: nonce management, IV configuration, and full-tag advisories. These require the analyzer to identify the MAC construction, not only AES-CBC or AES-GCM. |
+| [Disk encryption](code/symmetric_constructions_disk_encryption.py) | `ECCG-DISK-001`: ordinary CBC exercises the non-agreed disk-scheme heuristic. `ECCG-DISK-002`: ChaCha20 exercises the stream-cipher heuristic. `ECCG-DISK-003`: XTS tweak advisories. `ECCG-DISK-004`: CBC-ESSIV sector-number and malleability advisories, if the full construction is recognized. |
+| [Key combiners](code/symmetric_constructions_key_combiners.py) | `ECCG-KC-001`: two distinct key-establishment assets and a KDF in the same file can produce a composition warning. The examples combine ECDH/X25519 or X25519/ML-KEM secrets using HKDF. |
+| [Key derivation](code/symmetric_constructions_key_derivation.py) | `ECCG-KDF-001`: rejects unrecognized or non-agreed KDF schemes; correctly recognized HKDF and X9.63 should pass. Concatenation-KDF recognition depends on its emitted identifiers. `ECCG-KDF-002`: PBKDF2 PRF advisory, exercised in the [password examples](code/symmetric_constructions_password_protection.py). |
+| [Key protection](code/symmetric_constructions_key_protection.py) | `ECCG-KP-001`: medium review finding for schemes outside the recognized KW/KWP/SIV list. Correctly classified KW/KWP/SIV examples should pass; GCM can produce this finding because AE metadata alone does not establish key-protection context. |
+| [Password protection](code/symmetric_constructions_password_protection.py) | `ECCG-PWH-001`: medium review finding for scrypt and other KDFs outside the password-scheme list. `ECCG-PWH-002`: PBKDF2 salt/iteration advisory. `ECCG-PWH-003`: Argon2id parameter advisory. The Argon2id snippet uses 64 MiB, below the policy's stated 2 GiB recommendation. |
+
+HMAC-SHA1 is accepted as legacy through 2030 by the current MAC helpers. It can
+receive `ECCG-MAC-002` and `ECCG-HMAC-001` advisories during that period;
+afterwards it is rejected by `ECCG-MAC-001`. Its underlying SHA-1 hash can also
+produce an independent `ECCG-HASH-001` finding.
+
+The MAC-then-Encrypt and Encrypt-and-MAC examples are in the authenticated
+encryption file. The composition branch of `ECCG-MAC-001` uses a 15-line
+source-occurrence window. It requests review and cannot prove the ordering of
+encryption and authentication from source proximity alone.
+
+PBKDF2 and scrypt can be assessed by both the KDF and password sections. Generic
+HKDF usage can also receive `ECCG-PWH-001`: the current classification uses the
+`kdf` primitive and cannot establish whether the application hashes passwords.
+
+### Asymmetric atomic primitives
+
+| Section and source | Rules and expected behavior |
+| --- | --- |
+| [RSA](code/assymetric_atomic_primitives_rsa.py) | `ECCG-RSA-001`: critical for known positive moduli below 3000 bits. The 1024-bit and 2048-bit examples should trigger it; 3072 bits should not. Missing or unusable modulus metadata produces no RSA-size finding. |
+| [EC-DLOG](code/asymmetric_atomic_primitives_ec_dlog.py) | `ECCG-ECDLOG-001`: critical for an identified curve outside the allowlist, such as secp256k1; warning if the curve cannot be determined. `ECCG-ECDLOG-002`: advisory for agreed NIST curves such as P-256. |
+| [FF-DLOG](code/asymmetric_atomic_primitives_ff_dlog.py) | `ECCG-FFDLOG-001`: rejects a DH domain that cannot be identified as an agreed group. `ECCG-FFDLOG-002`: rejects an identified agreed group below 3072 bits, or warns when its size is unresolved. Named ffdhe2048 and ffdhe3072 provide rejection and acceptance examples when their group identities survive extraction. |
+
+### Asymmetric constructions
+
+| Section and source | Rules and expected behavior |
+| --- | --- |
+| [Asymmetric encryption](code/asymmetric_constructions_encryption.py) | `ECCG-AS-ENC-001`: rejects unagreed or unidentified encryption schemes. Both supplied schemes are agreed. `ECCG-AS-ENC-002`: random-padding advisory. `ECCG-AS-ENC-003`: PKCS#1 v1.5 padding-attack advisory. `ECCG-AS-ENC-004`: OAEP decoding/padding advisory. `ECCG-AS-ENC-005`: quantum-threat advisory for both schemes. |
+| [Digital signatures](code/asymmetric_constructions_digital_signatures.py) | `ECCG-DG-001`: rejects signature schemes outside the agreed list. RSA-PSS, RSA-PKCS1, ECDSA, deterministic ECDSA, DSA, Ed25519, Ed448, and ML-DSA are expected non-findings for this rule. Atomic-primitive findings remain independent. |
+| [Key establishment and encapsulation](code/asymmetric_constructions_key_establishment.py) | `ECCG-KEE-001`: rejects unagreed schemes; the supplied ECDH, X25519/X448, and ML-KEM examples are agreed. `ECCG-KEE-002`: authentication advisory. `ECCG-KEE-003`: ML-KEM parameter recommendation; identified 768/1024 sets should not trigger it. `ECCG-KEE-004`: FrodoKEM parameter recommendation; no native PyCA example is available here. |
+
+### Random number generation and key material
+
+| Section and source | Rules and expected behavior |
+| --- | --- |
+| [Random number generation](code/random_number_generation.py) | `ECCG-DRBG-001`: rejection of unagreed DRBGs. `ECCG-DRBG-002`, `ECCG-DRBG-003`, and `ECCG-DRBG-004`: seeding, quantum-entropy, and backtracking-resistance advisories. `ECCG-DRBG-005`: CTR_DRBG cipher-key-size advisory. The supplied `os.urandom` example identifies none of these constructions and should trigger none of these rules. |
+| [Key serialization](code/general_key_material.py) and [embedded keys](code/hardcoded_keys.py) | `ECCG-RSA-KEY-001`: private-key material, severity `high`. `ECCG-RSA-KEY-002`: public-key material, severity `info`. These rules exist in the General section, which is currently excluded from the main assessment. RSA operations using these keys can still produce findings in active sections. |
+
+[cbom_crypto_demo.py](code/cbom_crypto_demo.py) provides compact AES-GCM,
+HMAC-SHA256, and ECDH/HKDF examples. It contains no CBOM generator or policy
+evaluation code.
+
+## Detection and API limitations
+
+- **DRBGs:** PyCA exposes no public HMAC_DRBG, Hash_DRBG, or CTR_DRBG constructor
+  for these snippets. OS randomness, key generation, or individual HMAC/hash/AES
+  calls do not establish a particular DRBG. The DRBG rules have no positive
+  source example in this directory.
+- **Unavailable rejection cases:** the supplied native PyCA XOF, signature,
+  RSA-encryption, and key-establishment APIs implement agreed schemes. Their
+  acceptance examples do not demonstrate the corresponding rejection branches.
+  PyCA 50's ML-KEM API exposes 768/1024 rather than 512, and no FrodoKEM API is
+  used here. Missing parameter evidence can still produce an ML-KEM advisory.
+- **Composed constructions:** CBC-MAC, GMAC, and CBC-ESSIV are assembled from
+  PyCA primitives. Detection of their building blocks does not guarantee that
+  CBOMkit emits the construction name or the primitive required by its rule.
+- **Parameters and identifiers:** `parameterSetIdentifier` may describe a key
+  size, block size, output size, or strength, depending on the detected asset.
+  Inspect the generated component before interpreting a size finding. Curve
+  identity, padding, and named DH groups can also be lost or merged during
+  extraction.
+- **API support:** ML-KEM, ML-DSA, Argon2id, and imports from
+  `cryptography.hazmat.decrepit` require matching analyzer support. A valid Python
+  call can be absent from the resulting CBOM.
+- **Operational requirements:** advisory rules do not prove nonce uniqueness,
+  tag truncation, password parameters, peer authentication, or seed entropy.
+  Disk, key-protection, password, and combiner context can require manual review.
+
+The [policy README](../policies/README.MD) documents the rules. The executable
+definitions under [policies/eccg](../policies/eccg) determine the actual findings.
